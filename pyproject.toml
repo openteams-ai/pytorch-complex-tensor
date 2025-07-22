@@ -1,0 +1,38 @@
+[project]
+name = "complex-tensor"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+ "expecttest>=0.3.0",
+ "numpy>=2.0.2",
+ "pytest>=8.4.1",
+ "torch",
+]
+
+[build-system]
+requires = ["setuptools"]
+
+[tool.setuptools]
+packages = ["complex_tensor"]
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch" }
+]
+
+[[tool.uv.index]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.ruff]
+line-length = 100
+indent-width = 4
+target-version = "py39"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
