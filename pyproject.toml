@@ -1,38 +1,76 @@
 [project]
 name = "complex-tensor"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
- "expecttest>=0.3.0",
- "numpy>=2.0.2",
- "pytest>=8.4.1",
- "torch",
+    "expecttest>=0.3.0",
+    "numpy>=2.0.2",
+    "pytest>=8.4.1",
+    "torch>=2.7.1",
 ]
+
+[project.optional-dependencies]
+test = ["pytest>=8", "setuptools>=77.0.3,<81.0"]
 
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools>=77.0.3", "setuptools-scm>=8"]
+build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["complex_tensor"]
+package-dir = { "" = "src" }
 
-[tool.uv.sources]
-torch = [
-  { index = "pytorch" }
-]
-
-[[tool.uv.index]]
-name = "pytorch"
-url = "https://download.pytorch.org/whl/cu128"
-explicit = true
+[tool.setuptools_scm]
+version_file = "src/complex_tensor/_version.py"
 
 [tool.ruff]
 line-length = 100
 indent-width = 4
-target-version = "py39"
+exclude = ["src/complex_tensor/_version.py"]
+
+[tool.ruff.lint]
+select = [
+    "F",
+    "E",
+    "W",
+    "I",
+    "B",
+    "UP",
+    "YTT",
+    "BLE",
+    "C4",
+    "T10",
+    "ISC",
+    "ICN",
+    "PIE",
+    "PYI",
+    "RSE",
+    "RET",
+    "SIM",
+    "PGH",
+    "FLY",
+    "NPY",
+    "PERF",
+]
+
+[tool.ruff.lint.isort.sections]
+torch = ["torch*"]
+numpy = ["numpy", "numpy.*", "scipy", "scipy.*"]
 
 [tool.ruff.format]
 quote-style = "double"
+docstring-code-format = true
 indent-style = "space"
 skip-magic-trailing-comma = false
+
+[tool.ruff.lint.isort]
+section-order = [
+    "future",
+    "standard-library",
+    "torch",
+    "numpy",
+    "third-party",
+    "first-party",
+    "local-folder",
+]

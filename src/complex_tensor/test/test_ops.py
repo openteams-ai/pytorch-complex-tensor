@@ -1,9 +1,10 @@
 import torch
-from torch.testing._internal.common_utils import TestCase, run_tests
-from torch.testing._internal.common_device_type import ops, instantiate_device_type_tests
-from torch.testing._internal.common_methods_invocations import op_db
-from torch.testing._internal.opinfo.core import OpInfo
 from torch._ops import OpOverload
+from torch.testing._internal.common_device_type import instantiate_device_type_tests, ops
+from torch.testing._internal.common_methods_invocations import op_db
+from torch.testing._internal.common_utils import TestCase, run_tests
+from torch.testing._internal.opinfo.core import OpInfo
+
 from complex_tensor import ComplexTensor
 from complex_tensor.ops.core import COMPLEX_OPS_TABLE
 
@@ -21,7 +22,7 @@ def _get_opname_from_aten_op(aten_op):
     return name
 
 
-implemented_op_names = tuple(map(_get_opname_from_aten_op, COMPLEX_OPS_TABLE.keys()))
+implemented_op_names = set(map(_get_opname_from_aten_op, COMPLEX_OPS_TABLE.keys()))
 implemented_op_db = tuple(filter(lambda op: op.name in implemented_op_names, complex_op_db))
 
 COMPLEX_SKIP = {

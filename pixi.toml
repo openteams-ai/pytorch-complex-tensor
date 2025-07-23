@@ -1,0 +1,22 @@
+[workspace]
+authors = ["Hameer Abbasi <2190658+hameerabbasi@users.noreply.github.com>"]
+channels = ["conda-forge"]
+name = "pytorch-complex-tensor"
+platforms = ["win-64", "osx-arm64", "linux-64"]
+version = "0.1.0"
+
+[feature.test.tasks]
+test = "pytest"
+
+[dependencies]
+python = "3.9.*"
+
+[pypi-dependencies]
+complex-tensor = { path = ".", editable = true }
+
+[feature.test.pypi-dependencies]
+complex-tensor = { path = ".", extras=["test"], editable = true }
+
+[environments]
+default = []
+test = ["test"]

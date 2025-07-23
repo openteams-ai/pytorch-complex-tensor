@@ -14,7 +14,8 @@ class ComplexTensor(torch.Tensor):
         # If we want to support this complex rep using any float type (see
         # https://github.com/pytorch/pytorch/issues/95100)
         # We either need to:
-        # 1) add the complex types for say `complexbf32`, knowing they can't really be used anywhere else.
+        # 1) add the complex types for say `complexbf32`, knowing they can't really be used anywhere
+        #    else.
         # 2) We use the real float dtype here, and it is up to the user to know
         #    that dtype=float<size> here really means complex<2xSize> with dtype
         #    matching that of re/im parts alone
@@ -74,15 +75,11 @@ class ComplexTensor(torch.Tensor):
     def from_interleaved(t: torch.Tensor):
         with no_dispatch():
             t_real = t.real
-            if t.dtype.is_complex:
-                t_imag = t.imag
-            else:
-                t_imag = torch.zeros_like(t_real)
+            t_imag = t.imag if t.dtype.is_complex else torch.zeros_like(t_real)
             return ComplexTensor(t_real, t_imag)
 
     def as_interleaved(self):
-        joined = torch.complex(self.re, self.im)
-        return joined
+        return torch.complex(self.re, self.im)
 
     @staticmethod
     def __tensor_unflatten__(inner_tensors, meta):
