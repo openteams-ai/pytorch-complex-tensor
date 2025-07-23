@@ -1,20 +1,20 @@
-import functools
-import torch
-from typing import Dict, List, Callable
-from torch._ops import OpOverload
-from complex_tensor import ComplexTensor
-from torch.utils._mode_utils import no_dispatch
-from torch.utils._pytree import tree_map
+from typing import Callable, Optional, Union
 
-TableType = Dict[OpOverload, Callable]
+import torch
+from torch._ops import OpOverload
+from torch.utils._mode_utils import no_dispatch
+
+from complex_tensor import ComplexTensor
+
+TableType = dict[OpOverload, Callable]
 COMPLEX_OPS_TABLE: TableType = {}
 
 aten = torch.ops.aten
 
 
 def register_complex(
-    ops: List[OpOverload] | OpOverload,
-    func_impl: Callable | None = None,
+    ops: Union[list[OpOverload], OpOverload],
+    func_impl: Optional[Callable] = None,
 ):
     """Decorator to register an implementation for some ops in some dispatch tables"""
     if not isinstance(ops, list):
@@ -31,8 +31,7 @@ def register_complex(
 
 
 def lookup_complex(func, *args, **kwargs):
-    complex_impl = COMPLEX_OPS_TABLE.get(func, COMPLEX_OPS_TABLE.get(func.overloadpacket, None))
-    return complex_impl
+    return COMPLEX_OPS_TABLE.get(func, COMPLEX_OPS_TABLE.get(func.overloadpacket, None))
 
 
 def split_complex_arg(arg):
@@ -47,8 +46,7 @@ def split_complex_arg(arg):
         return arg.real, arg.complex
     if isinstance(arg, float):
         return arg, 0.0
-    else:
-        raise TypeError(f"Expected tensor or number got, {type(arg)}")
+    raise TypeError(f"Expected tensor or number got, {type(arg)}")
 
 
 def split_complex_tensor(complex_tensor):
@@ -70,7 +68,6 @@ def complex_to_real_dtype(dtype):
 @register_complex(aten.real)
 def real(self):
     re, _ = split_complex_tensor(self)
-    breakpoint()
     return re
 
 

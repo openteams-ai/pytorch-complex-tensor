@@ -5,6 +5,10 @@ build/
 dist/
 wheels/
 *.egg-info
+src/**/_version.py
 
 # Virtual environments
 .venv
+# pixi environments
+.pixi
+/pixi.lock
