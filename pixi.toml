@@ -6,17 +6,25 @@ platforms = ["win-64", "osx-arm64", "linux-64"]
 version = "0.1.0"
 
 [feature.test.tasks]
-test = "pytest"
+test = { cmd = "pytest", inputs = ["update-torch"] }
 
 [dependencies]
 python = "3.9.*"
+uv = ">=0.8.2"
+
+[pypi-options]
+extra-index-urls = ["https://download.pytorch.org/whl/nightly/cpu"]
+index-strategy = "unsafe-best-match"
 
 [pypi-dependencies]
 complex-tensor = { path = ".", editable = true }
 
 [feature.test.pypi-dependencies]
-complex-tensor = { path = ".", extras=["test"], editable = true }
+complex-tensor = { path = ".", extras = ["test"], editable = true }
 
 [environments]
 default = []
 test = ["test"]
+
+[tasks]
+update-torch = "uv pip install --upgrade --pre torch --index-url https://download.pytorch.org/whl/nightly/cpu"
