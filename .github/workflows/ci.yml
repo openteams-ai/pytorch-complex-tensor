@@ -30,8 +30,6 @@ jobs:
           python-version: ${{ matrix.python }}
           activate-environment: true
           enable-cache: true
-      - name: Install PyTorch nightly
-        run: uv pip install --upgrade --pre torch --index-url https://download.pytorch.org/whl/nightly/cpu
       - name: Install package
         run: uv pip install -e '.[test]' && uv lock
       - name: Run tests

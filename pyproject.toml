@@ -74,3 +74,13 @@ section-order = [
     "first-party",
     "local-folder",
 ]
+
+[tool.uv]
+index-strategy = "unsafe-best-match"
+
+[tool.uv.sources]
+torch = { index = "pytorch-nightly-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-nightly-cpu"
+url = "https://download.pytorch.org/whl/nightly/cpu"
