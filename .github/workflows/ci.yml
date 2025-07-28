@@ -24,24 +24,18 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Setup UV
+        uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python }}
-      - uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-${{ matrix.python }}-pip-${{ hashFiles('./pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.python }}-pip
+          activate-environment: true
+          enable-cache: true
       - name: Install PyTorch nightly
-        run: |
-          pip install --upgrade uv
-          uv pip install --system --upgrade --pre torch --index-url https://download.pytorch.org/whl/nightly/cpu
+        run: uv pip install --upgrade --pre torch --index-url https://download.pytorch.org/whl/nightly/cpu
       - name: Install package
-        run: |
-          uv pip install -e '.[tests]'
+        run: uv pip install -e '.[test]' && uv lock
       - name: Run tests
-        run: pytest
+        run: uv run --frozen pytest
 
 on:
   # Trigger the workflow on push or pull request,
