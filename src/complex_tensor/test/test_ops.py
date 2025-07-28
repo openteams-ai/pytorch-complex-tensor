@@ -42,6 +42,8 @@ def _as_complex_tensor(arg):
 
 
 class TestComplexTensor(TestCase):
+    _default_dtype_check_enabled = True
+
     @ops(implemented_op_db, allowed_dtypes=complex_types)
     def test_consistency(self, device, dtype, op: OpInfo):
         if op.name in COMPLEX_SKIP:
@@ -66,5 +68,4 @@ class TestComplexTensor(TestCase):
 instantiate_device_type_tests(TestComplexTensor, globals())
 
 if __name__ == "__main__":
-    TestCase._default_dtype_check_enabled = True
     run_tests()
