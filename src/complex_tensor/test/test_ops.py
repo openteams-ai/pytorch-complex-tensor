@@ -2,11 +2,13 @@ import torch
 from torch._ops import OpOverload
 from torch.testing._internal.common_device_type import instantiate_device_type_tests, ops
 from torch.testing._internal.common_methods_invocations import op_db
-from torch.testing._internal.common_utils import TestCase, run_tests
+from torch.testing._internal.common_utils import TestCase, parametrize, run_tests
 from torch.testing._internal.opinfo.core import OpInfo
 
 from complex_tensor import ComplexTensor
 from complex_tensor.ops.core import COMPLEX_OPS_TABLE
+
+torch._dynamo.config.recompile_limit = float("inf")
 
 complex_types = {torch.complex128, torch.complex64, torch.complex32}
 
@@ -44,16 +46,22 @@ def _as_complex_tensor(arg):
 class TestComplexTensor(TestCase):
     _default_dtype_check_enabled = True
 
+    @parametrize("compile", [False, True])
     @ops(implemented_op_db, allowed_dtypes=complex_types)
-    def test_consistency(self, device, dtype, op: OpInfo):
+    def test_consistency(self, device, dtype, op: OpInfo, compile: bool):
         if op.name in COMPLEX_SKIP:
             self.skipTest(COMPLEX_SKIP[op.name])
 
-        for sample_input in op.sample_inputs(device, dtype):
+        sample_inputs = op.sample_inputs(device, dtype)
+        op_eager = op
+        if compile:
+            op = torch.compile(op, fullgraph=True)
+
+        for sample_input in sample_inputs:
             interleaved_input = sample_input.input
             interleaved_args = sample_input.args
             interleaved_kwargs = sample_input.kwargs
-            expected = op(interleaved_input, *interleaved_args, **interleaved_kwargs)
+            expected = op_eager(interleaved_input, *interleaved_args, **interleaved_kwargs)
 
             subclass_sample = sample_input.transform(_as_complex_tensor)
             actual = op(subclass_sample.input, *subclass_sample.args, **subclass_sample.kwargs)

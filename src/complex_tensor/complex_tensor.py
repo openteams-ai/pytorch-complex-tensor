@@ -82,10 +82,13 @@ class ComplexTensor(torch.Tensor):
         return torch.complex(self.re, self.im)
 
     @staticmethod
-    def __tensor_unflatten__(inner_tensors, meta):
+    def __tensor_unflatten__(inner_tensors, meta, outer_size, outer_stride):
         assert meta is None
         re, im = inner_tensors["re"], inner_tensors["im"]
         return ComplexTensor(re, im)
+
+    def __tensor_flatten__(self):
+        return ["re", "im"], None
 
     def __repr__(self):
         return f"ComplexTensor(real={self.re}, imag={self.im})"

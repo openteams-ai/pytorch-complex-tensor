@@ -17,6 +17,7 @@ test = [
     "pytest>=8",
     "setuptools>=77.0.3,<81.0",
     "ipdb>=0.13",
+    "pytest-xdist>=3.8.0",
 ]
 
 [build-system]
@@ -92,7 +93,4 @@ name = "pytorch-nightly-cpu"
 url = "https://download.pytorch.org/whl/nightly/cpu"
 
 [tool.uv.workspace]
-members = [
-    ".",
-    ".",
-]
+members = [".", "."]
