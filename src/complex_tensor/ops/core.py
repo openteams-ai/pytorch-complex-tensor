@@ -89,17 +89,21 @@ def promote_real_cpu_tensors(
 ) -> tuple[torch.dtype, tuple[torch.Tensor, ...]]:
     out_dt = tensor.dtype
     for t in tensors:
-        out_dt = torch.promote_types(out_dt, t.dtype)
+        if isinstance(t, torch.Tensor):
+            out_dt = torch.promote_types(out_dt, t.dtype)
 
     prom_dt = PROMOTE_TYPES_CPU.get(out_dt)
     if (
         out_dt is None
         or tensor.device.type != "cpu"
-        or any(t.device.type != "cpu" for t in tensors)
+        or any(t.device.type != "cpu" for t in tensors if isinstance(t, torch.Tensor))
     ):
         return out_dt, (tensor, *tensors)
 
-    return out_dt, (tensor.to(prom_dt), *(t.to(prom_dt) for t in tensors))
+    return out_dt, (
+        tensor.to(prom_dt),
+        *(t.to(prom_dt) if isinstance(t, torch.Tensor) else t for t in tensors),
+    )
 
 
 def register_binary_nonlinear(aten_op):
