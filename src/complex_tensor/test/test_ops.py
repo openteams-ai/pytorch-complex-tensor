@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+import dataclasses
+from dataclasses import dataclass, field
+
 import torch
 from torch._ops import OpOverload
 from torch.testing._internal.common_device_type import instantiate_device_type_tests, ops
@@ -11,6 +16,7 @@ from complex_tensor.ops.core import COMPLEX_OPS_TABLE
 torch._dynamo.config.recompile_limit = float("inf")
 
 complex_types = {torch.complex128, torch.complex64, torch.complex32}
+aten = torch.ops.aten
 
 complex_op_db = tuple(
     filter(lambda op: any(op.supports_dtype(ct, "cpu") for ct in complex_types), op_db)
@@ -27,9 +33,35 @@ def _get_opname_from_aten_op(aten_op):
 implemented_op_names = set(map(_get_opname_from_aten_op, COMPLEX_OPS_TABLE.keys()))
 implemented_op_db = tuple(filter(lambda op: op.name in implemented_op_names, complex_op_db))
 
-COMPLEX_SKIP = {
-    "real": "Does not hit __torch_dispatch__",
-    "imag": "Does not hit __torch_dispatch__",
+
+@dataclass(frozen=True)
+class TestInfo:
+    op_name: str | None = field(default=None)
+    device: str | None = field(default=None)
+    dtype: torch.dtype | None = field(default=None)
+    compile: bool | None = field(default=None)
+
+    def matches(self, other: TestInfo) -> bool:
+        fields1 = dataclasses.fields(self)
+        fields2 = dataclasses.fields(other)
+        if fields1 != fields2:
+            return False
+
+        for f in fields1:
+            f1 = getattr(self, f.name)
+            f2 = getattr(other, f.name)
+            if f1 is not None and f2 is not None and f1 != f2:
+                return False
+
+        return True
+
+
+SKIPS = {
+    TestInfo(op_name="real"): "`aten.real` does not hit `__torch_dispatch__`",
+    TestInfo(op_name="imag"): "`aten.imag` does not hit `__torch_dispatch__`",
+    TestInfo(
+        op_name="sub", dtype=torch.complex32, compile=True
+    ): "numerical precision optimized out",
 }
 
 
@@ -49,8 +81,10 @@ class TestComplexTensor(TestCase):
     @parametrize("compile", [False, True])
     @ops(implemented_op_db, allowed_dtypes=complex_types)
     def test_consistency(self, device, dtype, op: OpInfo, compile: bool):
-        if op.name in COMPLEX_SKIP:
-            self.skipTest(COMPLEX_SKIP[op.name])
+        test_info = TestInfo(op_name=op.name, device=device, dtype=dtype, compile=compile)
+        for xfail_info, reason in SKIPS.items():
+            if xfail_info.matches(test_info):
+                self.skipTest(reason)
 
         sample_inputs = op.sample_inputs(device, dtype)
         op_eager = op

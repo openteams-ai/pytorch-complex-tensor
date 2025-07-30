@@ -135,12 +135,7 @@ def register_binary_linear(aten_op):
     def impl_with_alpha(
         lhs: ComplexTensor, rhs: ComplexTensor, *args, alpha, **kwargs
     ) -> ComplexTensor:
-        a_r, a_i = split_complex_tensor(lhs)
-        b_r, b_i = split_complex_arg(rhs)
-        alpha_r, alpha_i = split_complex_arg(alpha)
-        out_dt, (a_r, a_i, *_) = promote_real_cpu_tensors(a_r, a_i, b_r, b_i, alpha_r, alpha_i)
-        out = aten_op(ComplexTensor(a_r, a_i), aten.mul(rhs, alpha), *args, **kwargs)
-        return ComplexTensor(out.re.to(out_dt), out.im.to(out_dt))
+        return aten_op(lhs, aten.mul(rhs, alpha, *args, **kwargs), *args, **kwargs)
 
     def impl(lhs: ComplexTensor, rhs: ComplexTensor, *args, **kwargs) -> ComplexTensor:
         alpha = kwargs.pop("alpha", None)
