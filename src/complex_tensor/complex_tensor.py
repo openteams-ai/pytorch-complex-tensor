@@ -1,9 +1,15 @@
+from __future__ import annotations
+
 import torch
-from torch.utils._mode_utils import no_dispatch
+
+from typing_extensions import Any, Self
 
 
 class ComplexTensor(torch.Tensor):
-    def __new__(cls, real, imag):
+    re: torch.Tensor
+    im: torch.Tensor
+
+    def __new__(cls, real: torch.Tensor, imag: torch.Tensor) -> Self:
         shape = real.shape
         device = real.device
         # TODO (ajames):
@@ -50,11 +56,11 @@ class ComplexTensor(torch.Tensor):
         return res
 
     @property
-    def real(self):
+    def real(self) -> torch.Tensor:
         return self.re
 
     @property
-    def imag(self):
+    def imag(self) -> torch.Tensor:
         return self.im
 
     @classmethod
@@ -72,25 +78,29 @@ class ComplexTensor(torch.Tensor):
     __torch_function__ = torch._C._disabled_torch_function_impl
 
     @staticmethod
-    def from_interleaved(t: torch.Tensor):
-        with no_dispatch():
-            t_real = t.real
-            t_imag = t.imag if t.dtype.is_complex else torch.zeros_like(t_real)
-            return ComplexTensor(t_real, t_imag)
+    def from_interleaved(t: torch.Tensor) -> ComplexTensor:
+        t_real = t.real
+        t_imag = t.imag if t.dtype.is_complex else torch.zeros_like(t_real)
+        return ComplexTensor(t_real, t_imag)
 
     def as_interleaved(self):
         return torch.complex(self.re, self.im)
 
     @staticmethod
-    def __tensor_unflatten__(inner_tensors, meta, outer_size, outer_stride):
+    def __tensor_unflatten__(
+        inner_tensors: dict[str, torch.Tensor],
+        meta: Any,
+        outer_size: tuple[int, ...],
+        outer_stride: tuple[int, ...],
+    ):
         assert meta is None
         re, im = inner_tensors["re"], inner_tensors["im"]
         return ComplexTensor(re, im)
 
-    def __tensor_flatten__(self):
+    def __tensor_flatten__(self) -> tuple[list[str], Any]:
         return ["re", "im"], None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"ComplexTensor(real={self.re}, imag={self.im})"
 
     # TODO: Nested has these, but I am unsure what they are used for so that
