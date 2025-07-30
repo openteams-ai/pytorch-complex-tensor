@@ -12,6 +12,12 @@ class ComplexTensor(torch.Tensor):
     def __new__(cls, real: torch.Tensor, imag: torch.Tensor) -> Self:
         shape = real.shape
         device = real.device
+
+        # TODO (hameerabbasi): `torch.compile` fails here without making these contiguous.
+        # Why?
+        real = real.contiguous()
+        imag = imag.contiguous()
+
         # TODO (ajames):
         # What should we do with dtype?
         # We could convert to the complex type (float32 -> complex64), but we
