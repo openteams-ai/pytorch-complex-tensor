@@ -98,11 +98,17 @@ def promote_real_cpu_tensors(
 
     prom_dt = PROMOTE_TYPES_CPU.get(out_dt)
     if (
-        out_dt is None
+        prom_dt is None
         or tensor.device.type != "cpu"
         or any(t.device.type != "cpu" for t in tensors if isinstance(t, torch.Tensor))
     ):
-        return out_dt, (tensor, *tensors)
+        return out_dt, (
+            tensor.to(out_dt),
+            *(
+                t.to(out_dt) if isinstance(t, torch.Tensor) else torch.asarray(t, dtype=out_dt)
+                for t in tensors
+            ),
+        )
 
     return out_dt, (
         tensor.to(prom_dt),
@@ -137,11 +143,11 @@ def register_binary_linear(aten_op):
         return ComplexTensor(out.re.to(out_dt), out.im.to(out_dt))
 
     def impl(lhs: ComplexTensor, rhs: ComplexTensor, *args, **kwargs) -> ComplexTensor:
-        a_r, a_i = split_complex_tensor(lhs)
-        b_r, b_i = split_complex_arg(rhs)
         alpha = kwargs.pop("alpha", None)
         if alpha is not None:
             return impl_with_alpha(lhs, rhs, *args, alpha=alpha, **kwargs)
+        a_r, a_i = split_complex_tensor(lhs)
+        b_r, b_i = split_complex_arg(rhs)
         out_dt, (a_r, a_i, b_r, b_i) = promote_real_cpu_tensors(a_r, a_i, b_r, b_i)
         u = aten_op(a_r, b_r, *args, **kwargs)
         v = aten_op(a_i, b_i, *args, **kwargs)
