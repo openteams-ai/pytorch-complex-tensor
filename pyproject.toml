@@ -13,12 +13,14 @@ dependencies = [
 
 [project.optional-dependencies]
 test = [
-    "complex-tensor",
     "pytest>=8",
     "setuptools>=77.0.3,<81.0",
     "ipdb>=0.13",
     "pytest-xdist>=3.8.0",
 ]
+
+[dependency-groups]
+dev = ["complex-tensor[test]"]
 
 [build-system]
 requires = ["setuptools>=77.0.3", "setuptools-scm>=8"]

@@ -38,8 +38,8 @@ dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.10.*'" },
     { name = "numpy", version = "2.3.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "pytest" },
-    { name = "torch", version = "2.9.0.dev20250729", source = { registry = "https://download.pytorch.org/whl/nightly/cpu" }, marker = "sys_platform == 'darwin'" },
-    { name = "torch", version = "2.9.0.dev20250729+cpu", source = { registry = "https://download.pytorch.org/whl/nightly/cpu" }, marker = "sys_platform != 'darwin'" },
+    { name = "torch", version = "2.9.0.dev20250730", source = { registry = "https://download.pytorch.org/whl/nightly/cpu" }, marker = "sys_platform == 'darwin'" },
+    { name = "torch", version = "2.9.0.dev20250730+cpu", source = { registry = "https://download.pytorch.org/whl/nightly/cpu" }, marker = "sys_platform != 'darwin'" },
 ]
 
 [package.optional-dependencies]
@@ -50,9 +50,13 @@ test = [
     { name = "setuptools" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "complex-tensor", extra = ["test"] },
+]
+
 [package.metadata]
 requires-dist = [
-    { name = "complex-tensor", marker = "extra == 'test'", editable = "." },
     { name = "expecttest", specifier = ">=0.3.0" },
     { name = "ipdb", marker = "extra == 'test'", specifier = ">=0.13" },
     { name = "numpy", specifier = ">=2.0.2" },
@@ -63,6 +67,9 @@ requires-dist = [
     { name = "torch", specifier = ">=2.7.1", index = "https://download.pytorch.org/whl/nightly/cpu" },
 ]
 provides-extras = ["test"]
+
+[package.metadata.requires-dev]
+dev = [{ name = "complex-tensor", extras = ["test"], editable = "." }]
 
 [[package]]
 name = "decorator"
@@ -788,7 +795,7 @@ wheels = [
 
 [[package]]
 name = "torch"
-version = "2.9.0.dev20250729"
+version = "2.9.0.dev20250730"
 source = { registry = "https://download.pytorch.org/whl/nightly/cpu" }
 resolution-markers = [
     "python_full_version >= '3.12' and sys_platform == 'darwin'",
@@ -808,17 +815,17 @@ dependencies = [
     { name = "typing-extensions", marker = "sys_platform == 'darwin'" },
 ]
 wheels = [
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250729-cp310-none-macosx_11_0_arm64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250729-cp311-none-macosx_11_0_arm64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250729-cp312-none-macosx_11_0_arm64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250729-cp313-cp313t-macosx_14_0_arm64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250729-cp313-none-macosx_11_0_arm64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250729-cp39-none-macosx_11_0_arm64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250730-cp310-none-macosx_11_0_arm64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250730-cp311-none-macosx_11_0_arm64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250730-cp312-none-macosx_11_0_arm64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250730-cp313-cp313t-macosx_14_0_arm64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250730-cp313-none-macosx_11_0_arm64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250730-cp39-none-macosx_11_0_arm64.whl" },
 ]
 
 [[package]]
 name = "torch"
-version = "2.9.0.dev20250729+cpu"
+version = "2.9.0.dev20250730+cpu"
 source = { registry = "https://download.pytorch.org/whl/nightly/cpu" }
 resolution-markers = [
     "python_full_version >= '3.12' and sys_platform != 'darwin'",
@@ -838,30 +845,32 @@ dependencies = [
     { name = "typing-extensions", marker = "sys_platform != 'darwin'" },
 ]
 wheels = [
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250729%2Bcpu-cp310-cp310-manylinux_2_28_aarch64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250729%2Bcpu-cp310-cp310-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250729%2Bcpu-cp310-cp310-win_amd64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250729%2Bcpu-cp311-cp311-manylinux_2_28_aarch64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250729%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250729%2Bcpu-cp311-cp311-win_amd64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250729%2Bcpu-cp311-cp311-win_arm64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250729%2Bcpu-cp312-cp312-linux_s390x.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250729%2Bcpu-cp312-cp312-manylinux_2_28_aarch64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250729%2Bcpu-cp312-cp312-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250729%2Bcpu-cp312-cp312-win_amd64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250729%2Bcpu-cp312-cp312-win_arm64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250729%2Bcpu-cp313-cp313-linux_s390x.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250729%2Bcpu-cp313-cp313-manylinux_2_28_aarch64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250729%2Bcpu-cp313-cp313-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250729%2Bcpu-cp313-cp313-win_amd64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250729%2Bcpu-cp313-cp313-win_arm64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250729%2Bcpu-cp313-cp313t-manylinux_2_28_aarch64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250729%2Bcpu-cp313-cp313t-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250729%2Bcpu-cp313-cp313t-win_amd64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250729%2Bcpu-cp39-cp39-linux_s390x.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250729%2Bcpu-cp39-cp39-manylinux_2_28_aarch64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250729%2Bcpu-cp39-cp39-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250729%2Bcpu-cp39-cp39-win_amd64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250730%2Bcpu-cp310-cp310-linux_s390x.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250730%2Bcpu-cp310-cp310-manylinux_2_28_aarch64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250730%2Bcpu-cp310-cp310-manylinux_2_28_x86_64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250730%2Bcpu-cp310-cp310-win_amd64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250730%2Bcpu-cp311-cp311-linux_s390x.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250730%2Bcpu-cp311-cp311-manylinux_2_28_aarch64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250730%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250730%2Bcpu-cp311-cp311-win_amd64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250730%2Bcpu-cp311-cp311-win_arm64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250730%2Bcpu-cp312-cp312-linux_s390x.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250730%2Bcpu-cp312-cp312-manylinux_2_28_aarch64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250730%2Bcpu-cp312-cp312-manylinux_2_28_x86_64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250730%2Bcpu-cp312-cp312-win_amd64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250730%2Bcpu-cp312-cp312-win_arm64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250730%2Bcpu-cp313-cp313-linux_s390x.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250730%2Bcpu-cp313-cp313-manylinux_2_28_aarch64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250730%2Bcpu-cp313-cp313-manylinux_2_28_x86_64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250730%2Bcpu-cp313-cp313-win_amd64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250730%2Bcpu-cp313-cp313-win_arm64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250730%2Bcpu-cp313-cp313t-manylinux_2_28_aarch64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250730%2Bcpu-cp313-cp313t-manylinux_2_28_x86_64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250730%2Bcpu-cp313-cp313t-win_amd64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250730%2Bcpu-cp39-cp39-linux_s390x.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250730%2Bcpu-cp39-cp39-manylinux_2_28_aarch64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250730%2Bcpu-cp39-cp39-manylinux_2_28_x86_64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250730%2Bcpu-cp39-cp39-win_amd64.whl" },
 ]
 
 [[package]]
