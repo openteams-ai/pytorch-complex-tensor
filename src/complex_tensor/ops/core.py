@@ -57,8 +57,12 @@ def split_complex_arg(arg) -> tuple[torch.Tensor, torch.Tensor]:
         return arg, torch.zeros_like(arg)
     if isinstance(arg, complex):
         return arg.real, arg.complex
-    if isinstance(arg, (float, int, bool)):
-        return arg, type(arg)(False)
+    if isinstance(arg, (float, torch.SymFloat)):
+        return arg, 0.0
+    if isinstance(arg, (int, torch.SymInt)):
+        return arg, 0
+    if isinstance(arg, (bool, torch.SymBool)):
+        return arg, False
     raise TypeError(f"Expected tensor or number got, {type(arg)}")
 
 
@@ -94,15 +98,24 @@ def promote_real_cpu_tensors(
 
     prom_dt = PROMOTE_TYPES_CPU.get(out_dt)
     if (
-        out_dt is None
+        prom_dt is None
         or tensor.device.type != "cpu"
         or any(t.device.type != "cpu" for t in tensors if isinstance(t, torch.Tensor))
     ):
-        return out_dt, (tensor, *tensors)
+        return out_dt, (
+            tensor.to(out_dt),
+            *(
+                t.to(out_dt) if isinstance(t, torch.Tensor) else torch.asarray(t, dtype=out_dt)
+                for t in tensors
+            ),
+        )
 
     return out_dt, (
         tensor.to(prom_dt),
-        *(t.to(prom_dt) if isinstance(t, torch.Tensor) else t for t in tensors),
+        *(
+            t.to(prom_dt) if isinstance(t, torch.Tensor) else torch.asarray(t, dtype=prom_dt)
+            for t in tensors
+        ),
     )
 
 
@@ -119,12 +132,21 @@ def register_binary_nonlinear(aten_op):
 
 
 def register_binary_linear(aten_op):
+    def impl_with_alpha(
+        lhs: ComplexTensor, rhs: ComplexTensor, *args, alpha, **kwargs
+    ) -> ComplexTensor:
+        return aten_op(lhs, aten.mul(rhs, alpha, *args, **kwargs), *args, **kwargs)
+
     def impl(lhs: ComplexTensor, rhs: ComplexTensor, *args, **kwargs) -> ComplexTensor:
+        alpha = kwargs.pop("alpha", None)
+        if alpha is not None:
+            return impl_with_alpha(lhs, rhs, *args, alpha=alpha, **kwargs)
         a_r, a_i = split_complex_tensor(lhs)
         b_r, b_i = split_complex_arg(rhs)
-        r = aten_op(a_r, b_r, *args, **kwargs)
-        i = aten_op(a_i, b_i, *args, **kwargs)
-        return ComplexTensor(r, i)
+        out_dt, (a_r, a_i, b_r, b_i) = promote_real_cpu_tensors(a_r, a_i, b_r, b_i)
+        u = aten_op(a_r, b_r, *args, **kwargs)
+        v = aten_op(a_i, b_i, *args, **kwargs)
+        return ComplexTensor(u.to(out_dt), v.to(out_dt))
 
     return register_complex(aten_op, impl)
 

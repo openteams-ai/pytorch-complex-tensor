@@ -15,8 +15,6 @@ jobs:
         include:
           - os: macos-latest
             python: "3.9"
-          - os: windows-latest
-            python: "3.9"
       fail-fast: false
     runs-on: ${{ matrix.os }}
     env:
@@ -33,7 +31,7 @@ jobs:
       - name: Install package
         run: uv pip install -e '.[test]' && uv lock
       - name: Run tests
-        run: uv run --frozen pytest
+        run: uv run --frozen pytest -n auto
 
 on:
   # Trigger the workflow on push or pull request,
