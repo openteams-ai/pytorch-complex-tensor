@@ -305,10 +305,53 @@ def expm1_impl(self: ComplexTensor) -> ComplexTensor:
 @register_complex(aten.any)
 def any_impl(self: ComplexTensor, *args, **kwargs) -> torch.Tensor:
     x, y = split_complex_tensor(self)
-    return torch.logical_or(torch.any(x, *args, **kwargs), torch.any(y, *args, **kwargs))
+    return torch.any(x, *args, **kwargs) | torch.any(y, *args, **kwargs)
 
 
 @register_complex(aten.all)
 def all_impl(self: ComplexTensor, *args, **kwargs) -> torch.Tensor:
     x, y = split_complex_tensor(self)
-    return torch.logical_and(torch.any(x, *args, **kwargs), torch.any(y, *args, **kwargs))
+    return torch.any(x, *args, **kwargs) & torch.any(y, *args, **kwargs)
+
+
+@register_complex(aten.eq)
+def eq_impl(self: ComplexTensor, rhs: ComplexTensor, *args, **kwargs) -> torch.Tensor:
+    a_r, a_i = split_complex_tensor(self)
+    b_r, b_i = split_complex_arg(rhs)
+    return torch.eq(a_r, b_r, *args, **kwargs) & torch.eq(a_i, b_i, *args, **kwargs)
+
+
+@register_complex(aten.ne)
+def ne_impl(self: ComplexTensor, rhs: ComplexTensor, *args, **kwargs) -> torch.Tensor:
+    a_r, a_i = split_complex_tensor(self)
+    b_r, b_i = split_complex_arg(rhs)
+    return torch.ne(a_r, b_r, *args, **kwargs) | torch.ne(a_i, b_i, *args, **kwargs)
+
+
+@register_complex(aten.isnan)
+def isnan_impl(self: ComplexTensor) -> torch.Tensor:
+    re, im = split_complex_tensor(self)
+    return torch.isnan(re) | torch.isnan(im)
+
+
+@register_complex(aten.isclose)
+def isclose_impl(
+    self: ComplexTensor, rhs: ComplexTensor, rtol=1e-5, atol=1e-8, equal_nan: bool = False
+) -> torch.Tensor:
+    abs_diff = torch.abs(self - rhs)
+    abs_other = torch.abs(rhs)
+    basic_condition = abs_diff <= (rtol * abs_other + atol)
+
+    # This is the nontrivial part
+    if equal_nan:
+        a_r, a_i = split_complex_tensor(self)
+        b_r, b_i = split_complex_arg(rhs)
+
+        # This logical expression makes sure that the isnan of both the real and imaginary parts
+        # matches
+        equal_nan_condition = (torch.isnan(a_r) == torch.isnan(b_r)) & (
+            torch.isnan(a_i) == torch.isnan(b_i)
+        )
+        return basic_condition & equal_nan_condition
+
+    return basic_condition

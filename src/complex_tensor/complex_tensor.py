@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from typing import Any
+
 import torch
 
-from typing_extensions import Any, Self
+from typing_extensions import Self
 
 
 class ComplexTensor(torch.Tensor):
@@ -70,7 +72,9 @@ class ComplexTensor(torch.Tensor):
         return self.im
 
     @classmethod
-    def __torch_dispatch__(cls, func, types, args=(), kwargs=None):
+    def __torch_dispatch__(
+        cls, func, types: tuple[type], args: tuple = (), kwargs: dict | None = None
+    ):
         from .ops.core import lookup_complex
 
         kwargs = {} if kwargs is None else kwargs
