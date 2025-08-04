@@ -89,7 +89,7 @@ class ComplexTensor(torch.Tensor):
         t_imag = t.imag if t.dtype.is_complex else torch.zeros_like(t_real)
         return ComplexTensor(t_real, t_imag)
 
-    def as_interleaved(self):
+    def as_interleaved(self) -> torch.Tensor:
         return torch.complex(self.re, self.im)
 
     @staticmethod
@@ -98,7 +98,7 @@ class ComplexTensor(torch.Tensor):
         meta: Any,
         outer_size: tuple[int, ...],
         outer_stride: tuple[int, ...],
-    ):
+    ) -> ComplexTensor:
         assert meta is None
         re, im = inner_tensors["re"], inner_tensors["im"]
         return ComplexTensor(re, im)
