@@ -66,6 +66,24 @@ SKIPS = {
     TestInfo(
         op_name="sub", dtype=torch.complex32, compile=True
     ): "numerical precision optimized out",
+    TestInfo(
+        op_name="sort"
+    ): "https://github.com/pytorch/pytorch/pull/159556#issuecomment-3154215299",
+    TestInfo(
+        op_name="minimum"
+    ): "https://github.com/pytorch/pytorch/pull/159556#issuecomment-3154215299",
+    TestInfo(
+        op_name="maximum"
+    ): "https://github.com/pytorch/pytorch/pull/159556#issuecomment-3154215299",
+    TestInfo(
+        op_name="argmin"
+    ): "https://github.com/pytorch/pytorch/pull/159556#issuecomment-3154215299",
+    TestInfo(
+        op_name="argmax"
+    ): "https://github.com/pytorch/pytorch/pull/159556#issuecomment-3154215299",
+    TestInfo(
+        op_name="topk"
+    ): "https://github.com/pytorch/pytorch/pull/159556#issuecomment-3154215299",
 }
 
 
@@ -112,10 +130,22 @@ class TestComplexTensor(TestCase):
 
     @ops(ordered_op_db, dtypes=list(complex_types))
     def test_ordered_raises(self, device, dtype, op: OpInfo):
+        test_info = TestInfo(op_name=op.name, device=device, dtype=dtype)
+        for xfail_info, reason in SKIPS.items():
+            if xfail_info.matches(test_info):
+                self.skipTest(reason)
+
         sample_inputs = op.sample_inputs(device, dtype)
 
         for sample_input in sample_inputs:
             subclass_sample = sample_input.transform(_as_complex_tensor)
+            self.assertRaises(
+                NotImplementedError,
+                op,
+                sample_input.input,
+                *sample_input.args,
+                **sample_input.kwargs,
+            )
             self.assertRaises(
                 NotImplementedError,
                 op,
