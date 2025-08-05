@@ -11,7 +11,7 @@ from torch.testing._internal.common_utils import TestCase, parametrize, run_test
 from torch.testing._internal.opinfo.core import OpInfo
 
 from complex_tensor import ComplexTensor
-from complex_tensor.ops.core import COMPLEX_OPS_TABLE
+from complex_tensor.ops.core import COMPLEX_OPS_TABLE, ORDERED_OPS_LIST
 
 torch._dynamo.config.recompile_limit = float("inf")
 
@@ -30,8 +30,12 @@ def _get_opname_from_aten_op(aten_op):
     return name
 
 
-implemented_op_names = set(map(_get_opname_from_aten_op, COMPLEX_OPS_TABLE.keys()))
+ordered_op_names = set(map(_get_opname_from_aten_op, ORDERED_OPS_LIST))
+implemented_op_names = (
+    set(map(_get_opname_from_aten_op, COMPLEX_OPS_TABLE.keys())) - ordered_op_names
+)
 implemented_op_db = tuple(filter(lambda op: op.name in implemented_op_names, complex_op_db))
+ordered_op_db = tuple(filter(lambda op: op.name in ordered_op_names, op_db))
 
 
 @dataclass(frozen=True)
@@ -105,6 +109,20 @@ class TestComplexTensor(TestCase):
             else:
                 self.assertEqual(actual, expected)
                 self.assertTrue(type(actual) is type(expected))
+
+    @ops(ordered_op_db, dtypes=list(complex_types))
+    def test_ordered_raises(self, device, dtype, op: OpInfo):
+        sample_inputs = op.sample_inputs(device, dtype)
+
+        for sample_input in sample_inputs:
+            subclass_sample = sample_input.transform(_as_complex_tensor)
+            self.assertRaises(
+                NotImplementedError,
+                op,
+                subclass_sample.input,
+                *subclass_sample.args,
+                **subclass_sample.kwargs,
+            )
 
 
 instantiate_device_type_tests(TestComplexTensor, globals())

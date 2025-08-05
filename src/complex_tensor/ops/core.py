@@ -1,12 +1,12 @@
 from typing import Any, Callable, Optional, Union
 
 import torch
-from torch._ops import OpOverload, OpOverloadPacket
+from torch._ops import OpOverloadPacket
 from torch._refs import is_complex
 
 from complex_tensor import ComplexTensor
 
-OpType = Union[OpOverload, OpOverloadPacket]
+OpType = OpOverloadPacket
 
 TableType = dict[OpType, Callable]
 COMPLEX_OPS_TABLE: TableType = {}
@@ -348,10 +348,44 @@ def isclose_impl(
         b_r, b_i = split_complex_arg(rhs)
 
         # This logical expression makes sure that the isnan of both the real and imaginary parts
-        # matches
+        # matches (so 1 + nan*i doesn't equal nan + 1*i)
         equal_nan_condition = (torch.isnan(a_r) == torch.isnan(b_r)) & (
             torch.isnan(a_i) == torch.isnan(b_i)
         )
         return basic_condition & equal_nan_condition
 
     return basic_condition
+
+
+ORDERED_OPS_LIST = [
+    aten.lt,
+    aten.le,
+    aten.gt,
+    aten.ge,
+    aten.maximum,
+    aten.minimum,
+    aten.amin,
+    aten.amax,
+    aten.argmin,
+    aten.argmax,
+    aten.clamp,
+    aten.sort,
+    aten.topk,
+    aten.ceil,
+    aten.floor,
+]
+
+
+def register_ordered(op: OpType):
+    def ordered_impl(*args, **kwargs):
+        raise NotImplementedError(
+            f"{str(op).split('.', 1)!r} not implemented for {ComplexTensor.__name__!r}."
+        )
+
+    return register_complex(op, ordered_impl)
+
+
+for ordered_op in ORDERED_OPS_LIST:
+    globals()[f"{str(ordered_op).split('.', 1)!r}_impl"] = register_ordered(ordered_op)
+
+del ordered_op
