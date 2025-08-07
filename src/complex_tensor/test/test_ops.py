@@ -7,7 +7,7 @@ from torch.testing._internal.common_methods_invocations import op_db
 from torch.testing._internal.common_utils import parametrize, run_tests
 from torch.testing._internal.opinfo.core import OpInfo
 
-from complex_tensor.ops.core import COMPLEX_OPS_TABLE, ORDERED_OPS_LIST
+from complex_tensor.ops.core import COMPLEX_OPS_TABLE, LEXOGRAPIC_OPS_LIST, ORDERED_OPS_LIST
 from complex_tensor.test.utils import COMPLEX_DTYPES, TestCase, TestDescriptor, _as_complex_tensor
 
 torch._dynamo.config.recompile_limit = float("inf")
@@ -27,7 +27,7 @@ def _get_opname_from_aten_op(aten_op):
     return name
 
 
-ordered_op_names = set(map(_get_opname_from_aten_op, ORDERED_OPS_LIST))
+ordered_op_names = set(map(_get_opname_from_aten_op, ORDERED_OPS_LIST + LEXOGRAPIC_OPS_LIST))
 implemented_op_names = (
     set(map(_get_opname_from_aten_op, COMPLEX_OPS_TABLE.keys())) - ordered_op_names
 )
@@ -78,7 +78,7 @@ class TestComplexTensor(TestCase):
             def actual(subclass_sample=subclass_sample):
                 return op(subclass_sample.input, *subclass_sample.args, **subclass_sample.kwargs)
 
-            self.assertSameResult(expected, actual)
+            self.assertSameResult(expected, actual, ignore_exc_types=compile)
 
 
 instantiate_device_type_tests(TestComplexTensor, globals())

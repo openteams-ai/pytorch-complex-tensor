@@ -367,14 +367,24 @@ ORDERED_OPS_LIST = [
     aten.clamp,
     aten.ceil,
     aten.floor,
+    aten.minimum,
+    aten.maximum,
 ]
 
 
+ORDERED_EXC_TYPES: dict[OpType, type[Exception]] = {
+    aten.minimum: RuntimeError,
+    aten.maximum: RuntimeError,
+}
+
+
 def register_ordered(op: OpType):
-    msg = f"{str(op).split('.', 1)!r} not implemented for {ComplexTensor.__name__!r}."
+    msg = f"{str(op).split('.', 1)[0]!r} not implemented for {ComplexTensor.__name__!r}."
+
+    exc_type = ORDERED_EXC_TYPES.get(op, NotImplementedError)
 
     def ordered_impl(*args, **kwargs):
-        raise NotImplementedError(msg)
+        raise exc_type(msg)
 
     return register_complex(op, ordered_impl)
 
@@ -383,3 +393,34 @@ for ordered_op in ORDERED_OPS_LIST:
     globals()[f"{str(ordered_op).split('.', 1)!r}_impl"] = register_ordered(ordered_op)
 
 del ordered_op
+
+
+@register_complex(aten.masked_scatter)
+def masked_scatter_impl(
+    self: ComplexTensor, mask: torch.Tensor, source: ComplexTensor
+) -> ComplexTensor:
+    self_r, self_i = split_complex_tensor(self)
+    source_r, source_i = split_complex_arg(source)
+    ret_r = torch.masked_scatter(self_r, mask, source_r)
+    ret_i = torch.masked_scatter(self_i, mask, source_i)
+
+    return ComplexTensor(ret_r, ret_i)
+
+
+@register_complex(aten.where)
+def where_impl(mask: torch.Tensor, x: ComplexTensor, y: ComplexTensor) -> ComplexTensor:
+    x_r, x_i = split_complex_arg(x)
+    y_r, y_i = split_complex_arg(y)
+
+    ret_r = torch.where(mask, x_r, y_r)
+    ret_i = torch.where(mask, x_i, y_i)
+
+    return ComplexTensor(ret_r, ret_i)
+
+
+LEXOGRAPIC_OPS_LIST: list[OpType] = []
+
+
+def register_lexographic(op: OpType, *args, **kwargs):
+    LEXOGRAPIC_OPS_LIST.append(op)
+    return register_complex(op, *args, **kwargs)
