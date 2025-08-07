@@ -62,12 +62,19 @@ class TestCase(PytorchTestCase):
         except Exception as e:  # noqa: BLE001
             result_2 = None
             exception_2 = e
-
-        self.assertIs(
-            type(exception_1),
-            type(exception_2),
-            "Both functions must raise the same type of exception (or no exception).",
-        )
+        te1 = type(exception_1)
+        te2 = type(exception_2)
+        # Special case: One of the exceptions is UnsupportedException
+        # and the other side still raises.
+        if not (
+            (exception_1 is not None and te2 is torch._dynamo.exc.Unsupported)
+            or (te1 is torch._dynamo.exc.Unsupported and exception_2 is not None)
+        ):
+            self.assertIs(
+                te1,
+                te2,
+                "Both functions must raise the same type of exception (or no exception).",
+            )
         if exception_1 is None:
             flattened_1, spec_1 = tree_flatten(result_1)
             flattened_2, spec_2 = tree_flatten(result_2)

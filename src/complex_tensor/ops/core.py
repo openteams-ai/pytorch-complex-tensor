@@ -377,10 +377,10 @@ ORDERED_OPS_LIST = [
 
 
 def register_ordered(op: OpType):
+    msg = f"{str(op).split('.', 1)!r} not implemented for {ComplexTensor.__name__!r}."
+
     def ordered_impl(*args, **kwargs):
-        raise NotImplementedError(
-            f"{str(op).split('.', 1)!r} not implemented for {ComplexTensor.__name__!r}."
-        )
+        raise NotImplementedError(msg)
 
     return register_complex(op, ordered_impl)
 
