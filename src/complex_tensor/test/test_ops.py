@@ -41,24 +41,6 @@ SKIPS = {
     TestDescriptor(
         op_name="sub", dtype=torch.complex32, compile=True
     ): "numerical precision optimized out",
-    TestDescriptor(
-        op_name="sort"
-    ): "https://github.com/pytorch/pytorch/pull/159556#issuecomment-3154215299",
-    TestDescriptor(
-        op_name="minimum"
-    ): "https://github.com/pytorch/pytorch/pull/159556#issuecomment-3154215299",
-    TestDescriptor(
-        op_name="maximum"
-    ): "https://github.com/pytorch/pytorch/pull/159556#issuecomment-3154215299",
-    TestDescriptor(
-        op_name="argmin"
-    ): "https://github.com/pytorch/pytorch/pull/159556#issuecomment-3154215299",
-    TestDescriptor(
-        op_name="argmax"
-    ): "https://github.com/pytorch/pytorch/pull/159556#issuecomment-3154215299",
-    TestDescriptor(
-        op_name="topk"
-    ): "https://github.com/pytorch/pytorch/pull/159556#issuecomment-3154215299",
 }
 
 
