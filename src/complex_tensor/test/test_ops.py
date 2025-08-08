@@ -1,25 +1,22 @@
 from __future__ import annotations
 
-import dataclasses
-from dataclasses import dataclass, field
-
 import torch
 from torch._ops import OpOverload
 from torch.testing._internal.common_device_type import instantiate_device_type_tests, ops
 from torch.testing._internal.common_methods_invocations import op_db
-from torch.testing._internal.common_utils import TestCase, parametrize, run_tests
+from torch.testing._internal.common_utils import parametrize, run_tests
 from torch.testing._internal.opinfo.core import OpInfo
 
-from complex_tensor import ComplexTensor
-from complex_tensor.ops.core import COMPLEX_OPS_TABLE
+from complex_tensor.ops.core import COMPLEX_OPS_TABLE, LEXOGRAPIC_OPS_LIST, ORDERED_OPS_LIST
+from complex_tensor.test.utils import COMPLEX_DTYPES, TestCase, TestDescriptor, _as_complex_tensor
 
 torch._dynamo.config.recompile_limit = float("inf")
+torch._dynamo.config.accumulated_recompile_limit = float("inf")
 
-complex_types = {torch.complex128, torch.complex64, torch.complex32}
 aten = torch.ops.aten
 
 complex_op_db = tuple(
-    filter(lambda op: any(op.supports_dtype(ct, "cpu") for ct in complex_types), op_db)
+    filter(lambda op: any(op.supports_dtype(ct, "cpu") for ct in COMPLEX_DTYPES), op_db)
 )
 
 
@@ -30,58 +27,38 @@ def _get_opname_from_aten_op(aten_op):
     return name
 
 
-implemented_op_names = set(map(_get_opname_from_aten_op, COMPLEX_OPS_TABLE.keys()))
+ordered_op_names = set(map(_get_opname_from_aten_op, ORDERED_OPS_LIST + LEXOGRAPIC_OPS_LIST))
+implemented_op_names = (
+    set(map(_get_opname_from_aten_op, COMPLEX_OPS_TABLE.keys())) - ordered_op_names
+)
 implemented_op_db = tuple(filter(lambda op: op.name in implemented_op_names, complex_op_db))
-
-
-@dataclass(frozen=True)
-class TestInfo:
-    op_name: str | None = field(default=None)
-    device: str | None = field(default=None)
-    dtype: torch.dtype | None = field(default=None)
-    compile: bool | None = field(default=None)
-
-    def matches(self, other: TestInfo) -> bool:
-        fields1 = dataclasses.fields(self)
-        fields2 = dataclasses.fields(other)
-        if fields1 != fields2:
-            return False
-
-        for f in fields1:
-            f1 = getattr(self, f.name)
-            f2 = getattr(other, f.name)
-            if f1 is not None and f2 is not None and f1 != f2:
-                return False
-
-        return True
+ordered_op_db = tuple(filter(lambda op: op.name in ordered_op_names, op_db))
 
 
 SKIPS = {
-    TestInfo(op_name="real"): "`aten.real` does not hit `__torch_dispatch__`",
-    TestInfo(op_name="imag"): "`aten.imag` does not hit `__torch_dispatch__`",
-    TestInfo(
+    TestDescriptor(op_name="real"): "`aten.real` does not hit `__torch_dispatch__`",
+    TestDescriptor(op_name="imag"): "`aten.imag` does not hit `__torch_dispatch__`",
+    TestDescriptor(
         op_name="sub", dtype=torch.complex32, compile=True
     ): "numerical precision optimized out",
 }
-
-
-def _as_complex_tensor(arg):
-    if (
-        not isinstance(arg, ComplexTensor)
-        and isinstance(arg, torch.Tensor)
-        and arg.dtype in complex_types
-    ):
-        return ComplexTensor.from_interleaved(arg)
-    return arg
 
 
 class TestComplexTensor(TestCase):
     _default_dtype_check_enabled = True
 
     @parametrize("compile", [False, True])
-    @ops(implemented_op_db, allowed_dtypes=complex_types)
+    @ops(implemented_op_db, allowed_dtypes=list(COMPLEX_DTYPES))
     def test_consistency(self, device, dtype, op: OpInfo, compile: bool):
-        test_info = TestInfo(op_name=op.name, device=device, dtype=dtype, compile=compile)
+        self.check_consistency(device, dtype, op, compile)
+
+    @parametrize("compile", [False, True])
+    @ops(ordered_op_db, dtypes=list(COMPLEX_DTYPES))
+    def test_ordered_consistency(self, device, dtype, op: OpInfo, compile: bool):
+        self.check_consistency(device, dtype, op, compile)
+
+    def check_consistency(self, device, dtype, op: OpInfo, compile: bool) -> None:
+        test_info = TestDescriptor(op_name=op.name, device=device, dtype=dtype, compile=compile)
         for xfail_info, reason in SKIPS.items():
             if xfail_info.matches(test_info):
                 self.skipTest(reason)
@@ -92,19 +69,16 @@ class TestComplexTensor(TestCase):
             op = torch.compile(op, fullgraph=True)
 
         for sample_input in sample_inputs:
-            interleaved_input = sample_input.input
-            interleaved_args = sample_input.args
-            interleaved_kwargs = sample_input.kwargs
-            expected = op_eager(interleaved_input, *interleaved_args, **interleaved_kwargs)
+
+            def expected(sample_input=sample_input):
+                return op_eager(sample_input.input, *sample_input.args, **sample_input.kwargs)
 
             subclass_sample = sample_input.transform(_as_complex_tensor)
-            actual = op(subclass_sample.input, *subclass_sample.args, **subclass_sample.kwargs)
-            if torch.is_complex(expected):
-                self.assertEqual(actual.real, expected.real)
-                self.assertEqual(actual.imag, expected.imag)
-            else:
-                self.assertEqual(actual, expected)
-                self.assertTrue(type(actual) is type(expected))
+
+            def actual(subclass_sample=subclass_sample):
+                return op(subclass_sample.input, *subclass_sample.args, **subclass_sample.kwargs)
+
+            self.assertSameResult(expected, actual, ignore_exc_types=compile)
 
 
 instantiate_device_type_tests(TestComplexTensor, globals())
