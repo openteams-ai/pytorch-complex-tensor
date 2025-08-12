@@ -178,6 +178,7 @@ view_impl = register_simple(aten.view)
 # some binary ops which we can stamp out
 mul_impl = register_binary_nonlinear(aten.mul)
 mm_impl = register_binary_nonlinear(aten.mm)
+bmm_impl = register_binary_nonlinear(aten.bmm)
 add_impl = register_binary_linear(aten.add)
 sub_impl = register_binary_linear(aten.sub)
 
