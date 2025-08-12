@@ -132,16 +132,24 @@ def promote_real_cpu_tensors(
     )
 
 
-def register_binary_nonlinear(aten_op: OpType) -> Callable:
+def _make_binary_nonlinear(op: OpType) -> Callable:
     def impl(lhs: ComplexTensor, rhs: ComplexTensor, *args, **kwargs) -> ComplexTensor:
         a_r, a_i = split_complex_tensor(lhs)
         b_r, b_i = split_complex_arg(rhs)
         out_dt, (a_r, a_i, b_r, b_i) = promote_real_cpu_tensors(a_r, a_i, b_r, b_i)
-        real = aten_op(a_r, b_r, *args, **kwargs) - aten_op(a_i, b_i, *args, **kwargs)
-        imag = aten_op(a_r, b_i, *args, **kwargs) + aten_op(a_i, b_r, *args, **kwargs)
+        real = op(a_r, b_r, *args, **kwargs) - op(a_i, b_i, *args, **kwargs)
+        imag = op(a_r, b_i, *args, **kwargs) + op(a_i, b_r, *args, **kwargs)
         return ComplexTensor(real.to(out_dt), imag.to(out_dt))
 
-    return register_complex(aten_op, impl)
+    func_name = f"{str(op).split('.', 1)}_impl"
+    impl.__name__ = func_name
+    impl.__qualname__ = func_name
+
+    return impl
+
+
+def register_binary_nonlinear(op: OpType) -> Callable:
+    return register_complex(op, _make_binary_nonlinear(op))
 
 
 def register_binary_linear(aten_op):
@@ -185,13 +193,20 @@ def register_simple(aten_op: OpType):
 slice_impl = register_simple(aten.slice)
 flatten_impl = register_simple(aten.flatten)
 view_impl = register_simple(aten.view)
+
+# TODO (hameerabbasi): Not being tested
 copy_impl = register_force_test(aten.copy, _make_simple(aten.copy))
+# TODO (hameerabbasi): Not being tested
 _to_copy_impl = register_force_test(aten._to_copy, _make_simple(aten._to_copy))
 
 # some binary ops which we can stamp out
 mul_impl = register_binary_nonlinear(aten.mul)
 mm_impl = register_binary_nonlinear(aten.mm)
 bmm_impl = register_binary_nonlinear(aten.bmm)
+
+# TODO (hameerabbasi): Not being tested
+convolution_impl = register_force_test(aten.convolution, _make_binary_nonlinear(aten.convolution))
+
 add_impl = register_binary_linear(aten.add)
 sub_impl = register_binary_linear(aten.sub)
 
