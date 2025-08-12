@@ -199,6 +199,7 @@ expand_impl = register_simple(aten.expand)
 unsqueeze_impl = register_simple(aten.unsqueeze)
 mean_impl = register_simple(aten.mean)
 sum_impl = register_simple(aten.sum)
+round_impl = register_simple(aten.round)
 
 # TODO (hameerabbasi): Not being tested
 copy_impl = register_force_test(aten.copy, _make_simple(aten.copy))
