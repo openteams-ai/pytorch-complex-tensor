@@ -196,6 +196,7 @@ flatten_impl = register_simple(aten.flatten)
 view_impl = register_simple(aten.view)
 diagonal_impl = register_simple(aten.diagonal)
 expand_impl = register_simple(aten.expand)
+unsqueeze_impl = register_simple(aten.unsqueeze)
 
 # TODO (hameerabbasi): Not being tested
 copy_impl = register_force_test(aten.copy, _make_simple(aten.copy))
