@@ -200,6 +200,7 @@ unsqueeze_impl = register_simple(aten.unsqueeze)
 mean_impl = register_simple(aten.mean)
 sum_impl = register_simple(aten.sum)
 round_impl = register_simple(aten.round)
+clone_impl = register_simple(aten.clone)
 
 # TODO (hameerabbasi): Not being tested
 copy_impl = register_force_test(aten.copy, _make_simple(aten.copy))
@@ -310,12 +311,6 @@ def asin_impl(self: ComplexTensor) -> ComplexTensor:
     return ComplexTensor(u.to(out_dt), v.to(out_dt))
 
 
-@register_complex(aten.clone)
-def clone_impl(self: ComplexTensor, *args, **kwargs) -> ComplexTensor:
-    x, y = split_complex_tensor(self)
-    return ComplexTensor(torch.clone(x, *args, *kwargs), torch.clone(y, *args, **kwargs))
-
-
 @register_complex(aten.cos)
 def cos_impl(self: ComplexTensor) -> ComplexTensor:
     x, y = split_complex_tensor(self)
@@ -422,6 +417,7 @@ ORDERED_OPS_LIST = [
     aten.floor,
     aten.minimum,
     aten.maximum,
+    aten.trunc,
 ]
 
 
@@ -603,7 +599,7 @@ def sqrt_impl(self: ComplexTensor) -> ComplexTensor:
     ret_r = self_abs_sqrt * torch.cos(self_half_angle)
     ret_i = self_abs_sqrt * torch.sin(self_half_angle)
 
-    return ComplexTensor(ret_r, ret_i)
+    return ComplexTensor(ret_r.to(out_dt), ret_i.to(out_dt))
 
 
 @register_complex(aten.rsqrt)
@@ -617,4 +613,4 @@ def rsqrt_impl(self: ComplexTensor) -> ComplexTensor:
     ret_r = self_abs_rsqrt * torch.cos(self_neg_half_angle)
     ret_i = self_abs_rsqrt * torch.sin(self_neg_half_angle)
 
-    return ComplexTensor(ret_r, ret_i)
+    return ComplexTensor(ret_r.to(out_dt), ret_i.to(out_dt))
