@@ -198,6 +198,7 @@ diagonal_impl = register_simple(aten.diagonal)
 expand_impl = register_simple(aten.expand)
 unsqueeze_impl = register_simple(aten.unsqueeze)
 mean_impl = register_simple(aten.mean)
+sum_impl = register_simple(aten.sum)
 
 # TODO (hameerabbasi): Not being tested
 copy_impl = register_force_test(aten.copy, _make_simple(aten.copy))
@@ -243,12 +244,6 @@ def prod_impl(self: ComplexTensor, *args, **kwargs) -> ComplexTensor:
     u = prod_r * torch.cos(sum_phi)
     v = prod_r * torch.sin(sum_phi)
     return ComplexTensor(u, v)
-
-
-@register_complex(aten.sum)
-def sum_impl(self: ComplexTensor, *args, **kwargs) -> ComplexTensor:
-    re, im = split_complex_tensor(self)
-    return ComplexTensor(torch.sum(re, *args, **kwargs), torch.sum(im, *args, **kwargs))
 
 
 # unary funcs,
