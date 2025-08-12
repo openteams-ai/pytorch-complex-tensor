@@ -590,3 +590,31 @@ def sgn_impl(self: ComplexTensor) -> ComplexTensor:
         torch.div(self_r, abs_self).to(out_dt), torch.div(self_i, abs_self).to(out_dt)
     )
     return torch.where(mask, masked_sgn, 0)
+
+
+@register_complex(aten.sqrt)
+def sqrt_impl(self: ComplexTensor) -> ComplexTensor:
+    self_r, self_i = split_complex_tensor(self)
+    out_dt, (self_r, self_i) = promote_real_cpu_tensors(self_r, self_i)
+    self = ComplexTensor(self_r, self_i)
+    self_abs_sqrt = torch.sqrt(torch.abs(self))
+    self_half_angle = torch.angle(self) / 2
+
+    ret_r = self_abs_sqrt * torch.cos(self_half_angle)
+    ret_i = self_abs_sqrt * torch.sin(self_half_angle)
+
+    return ComplexTensor(ret_r, ret_i)
+
+
+@register_complex(aten.rsqrt)
+def rsqrt_impl(self: ComplexTensor) -> ComplexTensor:
+    self_r, self_i = split_complex_tensor(self)
+    out_dt, (self_r, self_i) = promote_real_cpu_tensors(self_r, self_i)
+    self = ComplexTensor(self_r, self_i)
+    self_abs_rsqrt = torch.rsqrt(torch.abs(self))
+    self_neg_half_angle = -torch.angle(self) / 2
+
+    ret_r = self_abs_rsqrt * torch.cos(self_neg_half_angle)
+    ret_i = self_abs_rsqrt * torch.sin(self_neg_half_angle)
+
+    return ComplexTensor(ret_r, ret_i)
