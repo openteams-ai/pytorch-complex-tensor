@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any
 
 import torch
-from torch.types import Device
 
 from typing_extensions import Self
 
@@ -119,7 +118,7 @@ class ComplexTensor(torch.Tensor):
     def __repr__(self) -> str:
         return f"ComplexTensor(real={self.re}, imag={self.im})"
 
-    def is_pinned(self, device: Device | None = None) -> bool:
+    def is_pinned(self, device: torch.device | None = None) -> bool:
         return self.re.is_pinned(device)
 
     # TODO: Nested has these, but I am unsure what they are used for so that

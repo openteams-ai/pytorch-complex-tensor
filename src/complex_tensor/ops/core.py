@@ -5,7 +5,6 @@ from typing import Any, Callable
 import torch
 from torch._ops import OpOverloadPacket
 from torch._refs import is_complex
-from torch.types import Device
 
 from complex_tensor import ComplexTensor
 
@@ -98,7 +97,7 @@ def imag_impl(self: ComplexTensor) -> torch.Tensor:
 
 
 @register_complex(aten.is_pinned)
-def is_pinned_impl(self: ComplexTensor, device: Device | None = None) -> bool:
+def is_pinned_impl(self: ComplexTensor, device: torch.device | None = None) -> bool:
     return self.is_pinned(device)
 
 
@@ -186,6 +185,8 @@ def register_simple(aten_op: OpType):
 slice_impl = register_simple(aten.slice)
 flatten_impl = register_simple(aten.flatten)
 view_impl = register_simple(aten.view)
+copy_impl = register_force_test(aten.copy, _make_simple(aten.copy))
+_to_copy_impl = register_force_test(aten._to_copy, _make_simple(aten._to_copy))
 
 # some binary ops which we can stamp out
 mul_impl = register_binary_nonlinear(aten.mul)
@@ -508,4 +509,12 @@ def topk_impl(
     raise NotImplementedError(f"`aten.topk` not implemented for `{ComplexTensor.__name__}`")
 
 
-copy_impl = register_force_test(aten.copy, _make_simple(aten.copy))
+@register_complex(aten.full_like)
+def full_like_impl(input: ComplexTensor, fill_value: complex, *args, **kwargs) -> ComplexTensor:
+    input_r, input_i = split_complex_tensor(input)
+    fv_r, fv_i = split_complex_arg(fill_value)
+
+    ret_r = torch.full_like(input_r, fv_r, *args, **kwargs)
+    ret_i = torch.full_like(input_i, fv_i, *args, **kwargs)
+
+    return ComplexTensor(ret_r, ret_i)
