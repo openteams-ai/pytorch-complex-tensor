@@ -578,3 +578,15 @@ def cat_impl(tensors: Sequence[ComplexTensor], dim: int = 0) -> ComplexTensor:
     ret_i = torch.cat(tensors_i, dim=dim)
 
     return ComplexTensor(ret_r, ret_i)
+
+
+@register_complex(aten.sgn)
+def sgn_impl(self: ComplexTensor) -> ComplexTensor:
+    self_r, self_i = split_complex_tensor(self)
+    out_dt, (self_r, self_i) = promote_real_cpu_tensors(self_r, self_i)
+    mask = self != 0
+    abs_self = torch.abs(ComplexTensor(self_r, self_i))
+    masked_sgn = ComplexTensor(
+        torch.div(self_r, abs_self).to(out_dt), torch.div(self_i, abs_self).to(out_dt)
+    )
+    return torch.where(mask, masked_sgn, 0)
