@@ -172,6 +172,10 @@ def _make_simple(aten_op: OpType):
         v = aten_op(y, *args, **kwargs)
         return ComplexTensor(u, v)
 
+    func_name = f"{str(aten_op).split('.', 1)}_impl"
+    impl.__name__ = func_name
+    impl.__qualname__ = func_name
+
     return impl
 
 
@@ -404,6 +408,10 @@ def register_ordered(op: OpType):
 
     def ordered_impl(*args, **kwargs):
         raise exc_type(msg)
+
+    func_name = f"{str(op).split('.', 1)}_impl"
+    ordered_impl.__name__ = func_name
+    ordered_impl.__qualname__ = func_name
 
     return register_complex(op, ordered_impl)
 
