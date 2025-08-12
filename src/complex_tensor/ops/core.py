@@ -193,6 +193,7 @@ def register_simple(aten_op: OpType):
 slice_impl = register_simple(aten.slice)
 flatten_impl = register_simple(aten.flatten)
 view_impl = register_simple(aten.view)
+diagonal_impl = register_simple(aten.diagonal)
 
 # TODO (hameerabbasi): Not being tested
 copy_impl = register_force_test(aten.copy, _make_simple(aten.copy))
