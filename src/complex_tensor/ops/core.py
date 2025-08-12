@@ -467,6 +467,21 @@ def slice_scatter_impl(
     return ComplexTensor(ret_r, ret_i)
 
 
+@register_complex(aten.index_put)
+def index_put_impl(
+    self: ComplexTensor,
+    indices: tuple[torch.Tensor, ...],
+    values: ComplexTensor,
+    accumulate: bool = False,
+) -> ComplexTensor:
+    self_r, self_i = split_complex_tensor(self)
+    values_r, values_i = split_complex_arg(values)
+    ret_r = torch.index_put(self_r, indices, values_r, accumulate=accumulate)
+    ret_i = torch.index_put(self_i, indices, values_i, accumulate=accumulate)
+
+    return ComplexTensor(ret_r, ret_i)
+
+
 @register_complex(aten.where)
 def where_impl(mask: torch.Tensor, x: ComplexTensor, y: ComplexTensor) -> ComplexTensor:
     x_r, x_i = split_complex_arg(x)
