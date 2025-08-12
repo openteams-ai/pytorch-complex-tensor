@@ -388,7 +388,7 @@ ORDERED_EXC_TYPES: dict[OpType, type[Exception]] = {
 
 
 def register_ordered(op: OpType):
-    msg = f"{str(op).split('.', 1)[0]!r} not implemented for {ComplexTensor.__name__!r}."
+    msg = f"`aten.{str(op).split('.', 1)[0]}` not implemented for `{ComplexTensor.__name__}`."
 
     exc_type = ORDERED_EXC_TYPES.get(op, NotImplementedError)
 
@@ -399,7 +399,7 @@ def register_ordered(op: OpType):
 
 
 for ordered_op in ORDERED_OPS_LIST:
-    globals()[f"{str(ordered_op).split('.', 1)!r}_impl"] = register_ordered(ordered_op)
+    globals()[f"{str(ordered_op).split('.', 1)}_impl"] = register_ordered(ordered_op)
 
 del ordered_op
 
@@ -442,7 +442,7 @@ def argmax_argmin_impl(
 ) -> torch.Tensor:
     if input.ndim == 0:
         raise NotImplementedError(
-            f"`argmax` and `argmin` not implemented for `{ComplexTensor.__name__!r}`."
+            f"`argmax` and `argmin` not implemented for `{ComplexTensor.__name__}`."
         )
 
     if dim is None:
@@ -455,7 +455,7 @@ def argmax_argmin_impl(
     for di in dim:
         if input.shape[di] != 1:
             raise NotImplementedError(
-                f"`argmax` and `argmin` not implemented for `{ComplexTensor.__name__!r}`."
+                f"`argmax` and `argmin` not implemented for `{ComplexTensor.__name__}`."
             )
 
     dim_set = set(dim)
@@ -469,3 +469,13 @@ def argmax_argmin_impl(
     return torch.zeros(
         out_shape, dtype=torch.int64, device=input.device, pin_memory=input.is_pinned()
     )
+
+
+@register_lexographic(aten.topk)
+def topk_impl(
+    input: ComplexTensor, k: int, dim: int | None = None, largest: bool = True, sorted: bool = True
+):
+    if input.ndim == 0:
+        return torch.return_types.topk((input.clone(), torch.asarray(0, dtype=torch.int64)))
+
+    raise NotImplementedError(f"`aten.topk` not implemented for `{ComplexTensor.__name__}`")
