@@ -202,6 +202,8 @@ unsqueeze_impl = register_simple(aten.unsqueeze)
 copy_impl = register_force_test(aten.copy, _make_simple(aten.copy))
 # TODO (hameerabbasi): Not being tested
 _to_copy_impl = register_force_test(aten._to_copy, _make_simple(aten._to_copy))
+# TODO (hameerabbasi): Not being tested
+com2im_impl = register_force_test(aten.col2im)
 
 # some binary ops which we can stamp out
 mul_impl = register_binary_nonlinear(aten.mul)
