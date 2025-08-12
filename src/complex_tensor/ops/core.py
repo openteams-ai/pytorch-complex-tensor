@@ -172,7 +172,8 @@ def register_simple(aten_op: OpType):
 
 
 slice_impl = register_simple(aten.slice)
-slice_impl = register_simple(aten.flatten)
+flatten_impl = register_simple(aten.flatten)
+view_impl = register_simple(aten.view)
 
 # some binary ops which we can stamp out
 mul_impl = register_binary_nonlinear(aten.mul)
