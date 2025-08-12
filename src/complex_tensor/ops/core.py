@@ -174,7 +174,6 @@ def register_simple(aten_op: OpType):
 slice_impl = register_simple(aten.slice)
 flatten_impl = register_simple(aten.flatten)
 view_impl = register_simple(aten.view)
-copy_impl = register_simple(aten.copy)
 
 # some binary ops which we can stamp out
 mul_impl = register_binary_nonlinear(aten.mul)
@@ -430,16 +429,16 @@ def where_impl(mask: torch.Tensor, x: ComplexTensor, y: ComplexTensor) -> Comple
     return ComplexTensor(ret_r, ret_i)
 
 
-LEXOGRAPIC_OPS_LIST: list[OpType] = []
+FORCE_TEST_LIST: list[OpType] = []
 
 
-def register_lexographic(op: OpType, *args, **kwargs):
-    LEXOGRAPIC_OPS_LIST.append(op)
+def register_force_test(op: OpType, *args, **kwargs):
+    FORCE_TEST_LIST.append(op)
     return register_complex(op, *args, **kwargs)
 
 
-@register_lexographic(aten.argmin)
-@register_lexographic(aten.argmax)
+@register_force_test(aten.argmin)
+@register_force_test(aten.argmax)
 def argmax_argmin_impl(
     input: ComplexTensor, dim: int | tuple[int, ...] | None = None, keepdim: bool = False
 ) -> torch.Tensor:
@@ -474,7 +473,7 @@ def argmax_argmin_impl(
     )
 
 
-@register_lexographic(aten.topk)
+@register_force_test(aten.topk)
 def topk_impl(
     input: ComplexTensor, k: int, dim: int | None = None, largest: bool = True, sorted: bool = True
 ):
@@ -482,3 +481,6 @@ def topk_impl(
         return torch.return_types.topk((input.clone(), torch.asarray(0, dtype=torch.int64)))
 
     raise NotImplementedError(f"`aten.topk` not implemented for `{ComplexTensor.__name__}`")
+
+
+copy_impl = register_force_test(aten.copy, _make_simple(aten.copy))
