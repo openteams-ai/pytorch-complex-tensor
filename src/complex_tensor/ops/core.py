@@ -212,6 +212,7 @@ com2im_impl = register_force_test(aten.col2im)
 # some binary ops which we can stamp out
 mul_impl = register_binary_nonlinear(aten.mul)
 mm_impl = register_binary_nonlinear(aten.mm)
+dot_impl = register_binary_nonlinear(aten.dot)
 bmm_impl = register_binary_nonlinear(aten.bmm)
 
 # TODO (hameerabbasi): Not being tested
@@ -614,3 +615,20 @@ def rsqrt_impl(self: ComplexTensor) -> ComplexTensor:
     ret_i = self_abs_rsqrt * torch.sin(self_neg_half_angle)
 
     return ComplexTensor(ret_r.to(out_dt), ret_i.to(out_dt))
+
+
+@register_complex(aten.addmm)
+def addmm_impl(
+    input: ComplexTensor,
+    mat1: ComplexTensor,
+    mat2: ComplexTensor,
+    out_dtype: torch.dtype | None = None,
+    beta: complex = 1,
+    alpha: complex = 1,
+) -> ComplexTensor:
+    ret = alpha * input + beta * torch.mm(mat1, mat2)
+    ret_r, ret_i = split_complex_tensor(ret)
+    if out_dtype is not None:
+        out_dtype = COMPLEX_TO_REAL[out_dtype]
+        ret_r, ret_i = ret_r.to(out_dtype), ret_i.to(out_dtype)
+    return ComplexTensor(ret_r, ret_i)
