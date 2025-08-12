@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any, Callable
 
 import torch
@@ -548,5 +549,21 @@ def full_like_impl(input: ComplexTensor, fill_value: complex, *args, **kwargs) -
 
     ret_r = torch.full_like(input_r, fv_r, *args, **kwargs)
     ret_i = torch.full_like(input_i, fv_i, *args, **kwargs)
+
+    return ComplexTensor(ret_r, ret_i)
+
+
+@register_complex(aten.cat)
+def cat_impl(tensors: Sequence[ComplexTensor], dim: int = 0) -> ComplexTensor:
+    tensors_r = []
+    tensors_i = []
+
+    for t in tensors:
+        t_r, t_i = split_complex_arg(t)
+        tensors_r.append(t_r)
+        tensors_i.append(t_i)
+
+    ret_r = torch.cat(tensors_r, dim=dim)
+    ret_i = torch.cat(tensors_i, dim=dim)
 
     return ComplexTensor(ret_r, ret_i)
