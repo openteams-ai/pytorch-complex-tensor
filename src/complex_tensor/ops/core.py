@@ -220,7 +220,7 @@ sub_impl = register_binary_linear(aten.sub)
 
 
 @register_complex(aten.div)
-def div(lhs: ComplexTensor, rhs: ComplexTensor, *, rounding_mode=None):
+def div_impl(lhs: ComplexTensor, rhs: ComplexTensor, *, rounding_mode=None):
     a_r, a_i = split_complex_tensor(lhs)
     b_r, b_i = split_complex_arg(rhs)
     out_dt, (a_r, a_i, b_r, b_i) = promote_real_cpu_tensors(a_r, a_i, b_r, b_i)
@@ -230,6 +230,17 @@ def div(lhs: ComplexTensor, rhs: ComplexTensor, *, rounding_mode=None):
     return ComplexTensor(
         aten.div(num_r, den, rounding_mode=rounding_mode).to(out_dt),
         aten.div(num_i, den, rounding_mode=rounding_mode).to(out_dt),
+    )
+
+
+@register_complex(aten.reciprocal)
+def reciprocal_impl(self: ComplexTensor):
+    self_r, self_i = split_complex_tensor(self)
+    out_dt, (self_r, self_i) = promote_real_cpu_tensors(self_r, self_i)
+    den = self_r * self_r + self_i * self_i
+    return ComplexTensor(
+        aten.div(self_r, den).to(out_dt),
+        aten.div(-self_i, den).to(out_dt),
     )
 
 
