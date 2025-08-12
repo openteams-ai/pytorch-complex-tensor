@@ -43,6 +43,14 @@ def register_complex(
     return inner(func_impl)
 
 
+FORCE_TEST_LIST: list[OpType] = []
+
+
+def register_force_test(op: OpType, *args, **kwargs):
+    FORCE_TEST_LIST.append(op)
+    return register_complex(op, *args, **kwargs)
+
+
 def lookup_complex(func, *args, **kwargs):
     return COMPLEX_OPS_TABLE.get(func, COMPLEX_OPS_TABLE.get(func.overloadpacket, None))
 
@@ -418,6 +426,23 @@ def masked_scatter_impl(
     return ComplexTensor(ret_r, ret_i)
 
 
+@register_force_test(aten.slice_scatter)
+def slice_scatter_impl(
+    self: ComplexTensor,
+    source: ComplexTensor,
+    dim: int = 0,
+    start: int | None = None,
+    end: int | None = None,
+    step: int = 1,
+) -> ComplexTensor:
+    self_r, self_i = split_complex_tensor(self)
+    source_r, source_i = split_complex_arg(source)
+    ret_r = torch.slice_scatter(self_r, source_r, dim=dim, start=start, end=end, step=step)
+    ret_i = torch.slice_scatter(self_i, source_i, dim=dim, start=start, end=end, step=step)
+
+    return ComplexTensor(ret_r, ret_i)
+
+
 @register_complex(aten.where)
 def where_impl(mask: torch.Tensor, x: ComplexTensor, y: ComplexTensor) -> ComplexTensor:
     x_r, x_i = split_complex_arg(x)
@@ -427,14 +452,6 @@ def where_impl(mask: torch.Tensor, x: ComplexTensor, y: ComplexTensor) -> Comple
     ret_i = torch.where(mask, x_i, y_i)
 
     return ComplexTensor(ret_r, ret_i)
-
-
-FORCE_TEST_LIST: list[OpType] = []
-
-
-def register_force_test(op: OpType, *args, **kwargs):
-    FORCE_TEST_LIST.append(op)
-    return register_complex(op, *args, **kwargs)
 
 
 @register_force_test(aten.argmin)
