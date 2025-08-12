@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 import torch
+from torch.types import Device
 
 from typing_extensions import Self
 
@@ -40,11 +41,15 @@ class ComplexTensor(torch.Tensor):
         strides = real.stride()
         layout = real.layout
         requires_grad = real.requires_grad
+        pin_memory = real.is_pinned()
 
         assert shape == imag.shape, f"Expected imag shape {shape}, got {imag.shape}"
         assert device == imag.device, f"Expected imag device {device}, got {imag.device}"
         assert dtype == imag.dtype, f"Expected imag dtype {dtype}, got {imag.dtype}"
         assert layout == imag.layout, f"Expected imag layout {layout}, got {imag.layout}"
+        assert pin_memory == imag.is_pinned(), (
+            f"Expected imag pinning {pin_memory}, got {imag.is_pinned()}"
+        )
         assert requires_grad == imag.requires_grad, (
             f"Expected imag requires_grad {requires_grad}, got {imag.requires_grad}"
         )
@@ -55,6 +60,7 @@ class ComplexTensor(torch.Tensor):
             dtype=dtype,
             storage_offset=storage_offset,
             strides=strides,
+            pin_memory=pin_memory,
             layout=layout,
             requires_grad=False,
         )
@@ -112,6 +118,9 @@ class ComplexTensor(torch.Tensor):
 
     def __repr__(self) -> str:
         return f"ComplexTensor(real={self.re}, imag={self.im})"
+
+    def is_pinned(self, device: Device | None = None) -> bool:
+        return self.re.is_pinned(device)
 
     # TODO: Nested has these, but I am unsure what they are used for so that
     # will be the first step to implementing them correctly

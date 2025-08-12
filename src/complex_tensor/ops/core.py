@@ -1,8 +1,11 @@
-from typing import Any, Callable, Optional, Union
+from __future__ import annotations
+
+from typing import Any, Callable
 
 import torch
 from torch._ops import OpOverloadPacket
 from torch._refs import is_complex
+from torch.types import Device
 
 from complex_tensor import ComplexTensor
 
@@ -27,7 +30,7 @@ aten = torch.ops.aten
 
 def register_complex(
     op: OpType,
-    func_impl: Optional[Callable] = None,
+    func_impl: Callable | None = None,
 ):
     """Decorator to register an implementation for some ops in some dispatch tables"""
 
@@ -45,8 +48,8 @@ def lookup_complex(func, *args, **kwargs):
 
 
 def split_complex_arg(
-    arg: Union[torch.Tensor, ComplexTensor, Any],
-) -> Union[tuple[torch.Tensor, torch.Tensor], tuple[Any, Any]]:
+    arg: torch.Tensor | ComplexTensor | Any,
+) -> tuple[torch.Tensor, torch.Tensor] | tuple[Any, Any]:
     if isinstance(arg, ComplexTensor):
         return split_complex_tensor(arg)
     if isinstance(arg, torch.Tensor):
@@ -74,16 +77,21 @@ def complex_to_real_dtype(dtype: torch.dtype) -> torch.dtype:
 
 # Not sure why torch dispatch does not hit here.
 @register_complex(aten.real)
-def real(self: ComplexTensor) -> torch.Tensor:
+def real_impl(self: ComplexTensor) -> torch.Tensor:
     re, _ = split_complex_tensor(self)
     return re
 
 
 # Not sure why torch dispatch does not hit here.
 @register_complex(aten.imag)
-def imag(self: ComplexTensor) -> torch.Tensor:
+def imag_impl(self: ComplexTensor) -> torch.Tensor:
     _, im = split_complex_tensor(self)
     return im
+
+
+@register_complex(aten.is_pinned)
+def is_pinned_impl(self: ComplexTensor, device: Device | None = None) -> bool:
+    return self.is_pinned(device)
 
 
 def promote_real_cpu_tensors(
@@ -164,6 +172,7 @@ def register_simple(aten_op: OpType):
 
 
 slice_impl = register_simple(aten.slice)
+slice_impl = register_simple(aten.flatten)
 
 # some binary ops which we can stamp out
 mul_impl = register_binary_nonlinear(aten.mul)
@@ -424,3 +433,39 @@ LEXOGRAPIC_OPS_LIST: list[OpType] = []
 def register_lexographic(op: OpType, *args, **kwargs):
     LEXOGRAPIC_OPS_LIST.append(op)
     return register_complex(op, *args, **kwargs)
+
+
+@register_lexographic(aten.argmin)
+@register_lexographic(aten.argmax)
+def argmax_argmin_impl(
+    input: ComplexTensor, dim: int | tuple[int, ...] | None = None, keepdim: bool = False
+) -> torch.Tensor:
+    if input.ndim == 0:
+        raise NotImplementedError(
+            f"`argmax` and `argmin` not implemented for `{ComplexTensor.__name__!r}`."
+        )
+
+    if dim is None:
+        dim = (0,)
+        input = torch.flatten(input)
+
+    if isinstance(dim, int):
+        dim = (dim,)
+
+    for di in dim:
+        if input.shape[di] != 1:
+            raise NotImplementedError(
+                f"`argmax` and `argmin` not implemented for `{ComplexTensor.__name__!r}`."
+            )
+
+    dim_set = set(dim)
+    if not keepdim:
+        out_shape = tuple(s for s, d in zip(input.shape, range(input.ndim)) if d not in dim_set)
+    else:
+        out_shape = tuple(
+            s if d not in dim_set else 1 for s, d in zip(input.shape, range(input.ndim))
+        )
+
+    return torch.zeros(
+        out_shape, dtype=torch.int64, device=input.device, pin_memory=input.is_pinned()
+    )
