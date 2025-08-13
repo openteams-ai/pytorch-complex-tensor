@@ -7,7 +7,7 @@ from torch.testing._internal.common_methods_invocations import op_db
 from torch.testing._internal.common_utils import parametrize, run_tests
 from torch.testing._internal.opinfo.core import OpInfo
 
-from complex_tensor.ops.core import COMPLEX_OPS_TABLE, LEXOGRAPIC_OPS_LIST, ORDERED_OPS_LIST
+from complex_tensor.ops.core import COMPLEX_OPS_TABLE, FORCE_TEST_LIST
 from complex_tensor.test.utils import COMPLEX_DTYPES, TestCase, TestDescriptor, _as_complex_tensor
 
 torch._dynamo.config.recompile_limit = float("inf")
@@ -27,20 +27,19 @@ def _get_opname_from_aten_op(aten_op):
     return name
 
 
-ordered_op_names = set(map(_get_opname_from_aten_op, ORDERED_OPS_LIST + LEXOGRAPIC_OPS_LIST))
+force_test_names = set(map(_get_opname_from_aten_op, FORCE_TEST_LIST))
 implemented_op_names = (
-    set(map(_get_opname_from_aten_op, COMPLEX_OPS_TABLE.keys())) - ordered_op_names
+    set(map(_get_opname_from_aten_op, COMPLEX_OPS_TABLE.keys())) - force_test_names
 )
 implemented_op_db = tuple(filter(lambda op: op.name in implemented_op_names, complex_op_db))
-ordered_op_db = tuple(filter(lambda op: op.name in ordered_op_names, op_db))
+force_test_op_db = tuple(filter(lambda op: op.name in force_test_names, op_db))
 
 
 SKIPS = {
     TestDescriptor(op_name="real"): "`aten.real` does not hit `__torch_dispatch__`",
     TestDescriptor(op_name="imag"): "`aten.imag` does not hit `__torch_dispatch__`",
-    TestDescriptor(
-        op_name="sub", dtype=torch.complex32, compile=True
-    ): "numerical precision optimized out",
+    TestDescriptor(op_name="repeat", dtype=torch.complex64, compile=True): "Heisenbug",
+    TestDescriptor(op_name="repeat", dtype=torch.complex128, compile=True): "Heisenbug",
 }
 
 
@@ -53,8 +52,8 @@ class TestComplexTensor(TestCase):
         self.check_consistency(device, dtype, op, compile)
 
     @parametrize("compile", [False, True])
-    @ops(ordered_op_db, dtypes=list(COMPLEX_DTYPES))
-    def test_ordered_consistency(self, device, dtype, op: OpInfo, compile: bool):
+    @ops(force_test_op_db, dtypes=list(COMPLEX_DTYPES))
+    def test_maybe_error(self, device, dtype, op: OpInfo, compile: bool):
         self.check_consistency(device, dtype, op, compile)
 
     def check_consistency(self, device, dtype, op: OpInfo, compile: bool) -> None:
