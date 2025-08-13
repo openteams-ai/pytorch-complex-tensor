@@ -673,3 +673,29 @@ def addmm_impl(
         out_dtype = COMPLEX_TO_REAL[out_dtype]
         ret_r, ret_i = ret_r.to(out_dtype), ret_i.to(out_dtype)
     return ComplexTensor(ret_r, ret_i)
+
+
+def elemwise_nonzero(self: ComplexTensor) -> torch.Tensor:
+    re, im = split_complex_tensor(self)
+    return (re != 0) | (im != 0)
+
+
+def register_nonzero_impl(op: OpType):
+    def nonzero_impl(self: ComplexTensor, other: ComplexTensor, *args, **kwargs) -> torch.Tensor:
+        return op(elemwise_nonzero(self), elemwise_nonzero(other), *args, **kwargs)
+
+    func_name = f"{str(op).split('.', 1)}_impl"
+    nonzero_impl.__name__ = func_name
+    nonzero_impl.__qualname__ = func_name
+
+    return register_complex(op, nonzero_impl)
+
+
+logical_and_impl = register_nonzero_impl(aten.logical_and)
+logical_or_impl = register_nonzero_impl(aten.logical_or)
+logical_xor_impl = register_nonzero_impl(aten.logical_xor)
+
+
+@register_complex(aten.logical_not)
+def logical_not_impl(self: ComplexTensor, *args, **kwargs) -> torch.Tensor:
+    return torch.logical_not(elemwise_nonzero(self), *args, **kwargs)
