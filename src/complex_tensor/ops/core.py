@@ -204,6 +204,7 @@ clone_impl = register_simple(aten.clone)
 neg_impl = register_simple(aten.neg)
 flip_impl = register_simple(aten.flip)
 permute_impl = register_simple(aten.permute)
+repeat_impl = register_simple(aten.repeat)
 
 # TODO (hameerabbasi): Not being tested
 copy_impl = register_force_test(aten.copy, _make_simple(aten.copy))
