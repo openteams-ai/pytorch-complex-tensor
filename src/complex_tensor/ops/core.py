@@ -407,7 +407,7 @@ def isclose_impl(
     return basic_condition
 
 
-ORDERED_OPS_LIST = [
+ERROR_OPS_LIST = [
     aten.lt,
     aten.le,
     aten.gt,
@@ -424,7 +424,7 @@ ORDERED_OPS_LIST = [
 ]
 
 
-ORDERED_EXC_TYPES: dict[OpType, type[Exception]] = {
+ERROR_TYPES: dict[OpType, type[Exception]] = {
     aten.minimum: RuntimeError,
     aten.maximum: RuntimeError,
 }
@@ -433,7 +433,7 @@ ORDERED_EXC_TYPES: dict[OpType, type[Exception]] = {
 def register_ordered(op: OpType):
     msg = f"`aten.{str(op).split('.', 1)[0]}` not implemented for `{ComplexTensor.__name__}`."
 
-    exc_type = ORDERED_EXC_TYPES.get(op, NotImplementedError)
+    exc_type = ERROR_TYPES.get(op, NotImplementedError)
 
     def ordered_impl(*args, **kwargs):
         raise exc_type(msg)
@@ -445,10 +445,10 @@ def register_ordered(op: OpType):
     return register_complex(op, ordered_impl)
 
 
-for ordered_op in ORDERED_OPS_LIST:
-    globals()[f"{str(ordered_op).split('.', 1)}_impl"] = register_ordered(ordered_op)
+for err_op in ERROR_OPS_LIST:
+    globals()[f"{str(err_op).split('.', 1)}_impl"] = register_ordered(err_op)
 
-del ordered_op
+del err_op
 
 
 @register_complex(aten.masked_scatter)
