@@ -38,6 +38,8 @@ force_test_op_db = tuple(filter(lambda op: op.name in force_test_names, op_db))
 SKIPS = {
     TestDescriptor(op_name="real"): "`aten.real` does not hit `__torch_dispatch__`",
     TestDescriptor(op_name="imag"): "`aten.imag` does not hit `__torch_dispatch__`",
+    TestDescriptor(op_name="repeat", dtype=torch.complex64, compile=True): "Heisenbug",
+    TestDescriptor(op_name="repeat", dtype=torch.complex128, compile=True): "Heisenbug",
 }
 
 
