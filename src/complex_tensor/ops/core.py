@@ -420,6 +420,7 @@ ORDERED_OPS_LIST = [
     aten.minimum,
     aten.maximum,
     aten.trunc,
+    aten.sign,
 ]
 
 
