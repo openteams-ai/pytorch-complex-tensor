@@ -565,6 +565,20 @@ def topk_impl(
     raise NotImplementedError(f"`aten.topk` not implemented for `{ComplexTensor.__name__}`")
 
 
+@register_force_test(aten.sort)
+def sort_impl(
+    input: ComplexTensor, dim: int = -1, descending: bool = False, stable: bool = False
+) -> torch.return_types.sort:
+    msg = f"`aten.sort` not implemented for `{ComplexTensor.__name__}`"
+    if input.dtype == torch.float16:
+        if input.ndim == 0:
+            return torch.return_types.sort(
+                (torch.clone(input), torch.zeros_like(input.re, dtype=torch.int64))
+            )
+        raise NotImplementedError(msg)
+    raise ValueError(msg)
+
+
 @register_complex(aten.full_like)
 def full_like_impl(input: ComplexTensor, fill_value: complex, *args, **kwargs) -> ComplexTensor:
     input_r, input_i = split_complex_tensor(input)
