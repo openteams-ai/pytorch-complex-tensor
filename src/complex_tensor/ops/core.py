@@ -212,6 +212,7 @@ permute_impl = register_simple(aten.permute)
 repeat_impl = register_simple(aten.repeat)
 index_select_impl = register_simple(aten.index_select)
 split_with_sizes_impl = register_simple(aten.split_with_sizes)
+cumsum_impl = register_simple(aten.cumsum)
 
 # TODO (hameerabbasi): Not being tested
 copy_impl = register_force_test(aten.copy, _make_simple(aten.copy))
