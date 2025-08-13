@@ -6,6 +6,7 @@ from typing import Any, Callable
 import torch
 from torch._ops import OpOverloadPacket
 from torch._refs import is_complex
+from torch.utils._pytree import tree_flatten, tree_unflatten
 
 from complex_tensor import ComplexTensor
 
@@ -173,14 +174,18 @@ def register_binary_linear(aten_op):
     return register_complex(aten_op, impl)
 
 
-def _make_simple(aten_op: OpType):
+def _make_simple(op: OpType):
     def impl(self: ComplexTensor, *args, **kwargs) -> ComplexTensor:
         x, y = split_complex_tensor(self)
-        u = aten_op(x, *args, **kwargs)
-        v = aten_op(y, *args, **kwargs)
-        return ComplexTensor(u, v)
+        u = op(x, *args, **kwargs)
+        v = op(y, *args, **kwargs)
+        u_flat, u_spec = tree_flatten(u)
+        v_flat, v_spec = tree_flatten(v)
+        assert u_spec == v_spec
+        out_flat = [ComplexTensor(ui, vi) for ui, vi in zip(u_flat, v_flat)]
+        return tree_unflatten(out_flat, u_spec)
 
-    func_name = f"{str(aten_op).split('.', 1)}_impl"
+    func_name = f"{str(op).split('.', 1)}_impl"
     impl.__name__ = func_name
     impl.__qualname__ = func_name
 
@@ -205,6 +210,8 @@ neg_impl = register_simple(aten.neg)
 flip_impl = register_simple(aten.flip)
 permute_impl = register_simple(aten.permute)
 repeat_impl = register_simple(aten.repeat)
+index_select_impl = register_simple(aten.index_select)
+split_with_sizes_impl = register_simple(aten.split_with_sizes)
 
 # TODO (hameerabbasi): Not being tested
 copy_impl = register_force_test(aten.copy, _make_simple(aten.copy))
