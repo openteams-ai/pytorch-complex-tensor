@@ -219,7 +219,7 @@ copy_impl = register_force_test(aten.copy, _make_simple(aten.copy))
 # TODO (hameerabbasi): Not being tested
 _to_copy_impl = register_force_test(aten._to_copy, _make_simple(aten._to_copy))
 # TODO (hameerabbasi): Not being tested
-com2im_impl = register_force_test(aten.col2im)
+col2im_impl = register_force_test(aten.col2im, _make_simple(aten.col2im))
 # TODO (hameerabbasi): Not being tested
 alias_impl = register_force_test(aten.alias, _make_simple(aten.alias))
 
