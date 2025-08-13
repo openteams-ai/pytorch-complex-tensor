@@ -201,6 +201,7 @@ mean_impl = register_simple(aten.mean)
 sum_impl = register_simple(aten.sum)
 round_impl = register_simple(aten.round)
 clone_impl = register_simple(aten.clone)
+neg_impl = register_simple(aten.neg)
 
 # TODO (hameerabbasi): Not being tested
 copy_impl = register_force_test(aten.copy, _make_simple(aten.copy))
