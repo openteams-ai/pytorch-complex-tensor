@@ -67,7 +67,7 @@ class TestCase(PytorchTestCase):
             result_2 = None
             exception_2 = e
         # Special case: compiled versions don't match the error type exactly.
-        if ((exception_1 is None) != (exception_2 is None)) and not ignore_exc_types:
+        if ((exception_1 is None) != (exception_2 is None)) or not ignore_exc_types:
             self.assertIs(type(exception_1), type(exception_2), f"\n{exception_1=}\n{exception_2=}")
 
         if exception_1 is None:
