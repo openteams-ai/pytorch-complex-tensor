@@ -455,7 +455,7 @@ def register_ordered(op: OpType):
     ordered_impl.__name__ = func_name
     ordered_impl.__qualname__ = func_name
 
-    return register_complex(op, ordered_impl)
+    return register_force_test(op, ordered_impl)
 
 
 for err_op in ERROR_OPS_LIST:
@@ -558,7 +558,7 @@ def argmax_argmin_impl(
 @register_force_test(aten.topk)
 def topk_impl(
     input: ComplexTensor, k: int, dim: int | None = None, largest: bool = True, sorted: bool = True
-):
+) -> torch.return_types.topk:
     if input.ndim == 0:
         return torch.return_types.topk((input.clone(), torch.asarray(0, dtype=torch.int64)))
 
