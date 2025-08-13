@@ -397,6 +397,18 @@ def isnan_impl(self: ComplexTensor) -> torch.Tensor:
     return torch.isnan(re) | torch.isnan(im)
 
 
+@register_complex(aten.isinf)
+def isinf_impl(self: ComplexTensor) -> torch.Tensor:
+    re, im = split_complex_tensor(self)
+    return torch.isinf(re) | torch.isinf(im)
+
+
+@register_complex(aten.isfinite)
+def isfinite_impl(self: ComplexTensor) -> torch.Tensor:
+    re, im = split_complex_tensor(self)
+    return torch.isfinite(re) & torch.isfinite(im)
+
+
 @register_complex(aten.isclose)
 def isclose_impl(
     self: ComplexTensor, rhs: ComplexTensor, rtol=1e-5, atol=1e-8, equal_nan: bool = False
