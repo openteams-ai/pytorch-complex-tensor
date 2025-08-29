@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
-from typing import Any, Callable
+from collections.abc import Callable, Sequence
+from typing import Any
 
 import torch
 from torch._ops import OpOverloadPacket
@@ -68,11 +68,11 @@ def split_complex_arg(
         return arg, torch.zeros_like(arg)
     if isinstance(arg, complex):
         return arg.real, arg.imag
-    if isinstance(arg, (float, torch.SymFloat)):
+    if isinstance(arg, float | torch.SymFloat):
         return arg, 0.0
-    if isinstance(arg, (int, torch.SymInt)):
+    if isinstance(arg, int | torch.SymInt):
         return arg, 0
-    if isinstance(arg, (bool, torch.SymBool)):
+    if isinstance(arg, bool | torch.SymBool):
         return arg, False
     raise TypeError(f"Expected tensor or number got, {type(arg)}")
 
@@ -183,7 +183,7 @@ def _make_simple(op: OpType):
         u_flat, u_spec = tree_flatten(u)
         v_flat, v_spec = tree_flatten(v)
         assert u_spec == v_spec
-        out_flat = [ComplexTensor(ui, vi) for ui, vi in zip(u_flat, v_flat)]
+        out_flat = [ComplexTensor(ui, vi) for ui, vi in zip(u_flat, v_flat, strict=False)]
         return tree_unflatten(out_flat, u_spec)
 
     func_name = f"{str(op).split('.', 1)}_impl"
@@ -447,12 +447,20 @@ ERROR_OPS_LIST = [
     aten.maximum,
     aten.trunc,
     aten.sign,
+    aten.argmax,
+    aten.argmin,
+    aten.sort,
+    aten.topk,
 ]
 
 
 ERROR_TYPES: dict[OpType, type[Exception]] = {
     aten.minimum: RuntimeError,
     aten.maximum: RuntimeError,
+    aten.argmax: RuntimeError,
+    aten.argmin: RuntimeError,
+    aten.sort: RuntimeError,
+    aten.topk: RuntimeError,
 }
 
 
@@ -530,66 +538,6 @@ def where_impl(mask: torch.Tensor, x: ComplexTensor, y: ComplexTensor) -> Comple
     ret_i = torch.where(mask, x_i, y_i)
 
     return ComplexTensor(ret_r, ret_i)
-
-
-@register_force_test(aten.argmin)
-@register_force_test(aten.argmax)
-def argmax_argmin_impl(
-    input: ComplexTensor, dim: int | tuple[int, ...] | None = None, keepdim: bool = False
-) -> torch.Tensor:
-    if input.ndim == 0:
-        raise NotImplementedError(
-            f"`argmax` and `argmin` not implemented for `{ComplexTensor.__name__}`."
-        )
-
-    if dim is None:
-        dim = (0,)
-        input = torch.flatten(input)
-
-    if isinstance(dim, int):
-        dim = (dim,)
-
-    for di in dim:
-        if input.shape[di] != 1:
-            raise NotImplementedError(
-                f"`argmax` and `argmin` not implemented for `{ComplexTensor.__name__}`."
-            )
-
-    dim_set = set(dim)
-    if not keepdim:
-        out_shape = tuple(s for s, d in zip(input.shape, range(input.ndim)) if d not in dim_set)
-    else:
-        out_shape = tuple(
-            s if d not in dim_set else 1 for s, d in zip(input.shape, range(input.ndim))
-        )
-
-    return torch.zeros(
-        out_shape, dtype=torch.int64, device=input.device, pin_memory=input.is_pinned()
-    )
-
-
-@register_force_test(aten.topk)
-def topk_impl(
-    input: ComplexTensor, k: int, dim: int | None = None, largest: bool = True, sorted: bool = True
-) -> torch.return_types.topk:
-    if input.ndim == 0:
-        return torch.return_types.topk((input.clone(), torch.asarray(0, dtype=torch.int64)))
-
-    raise NotImplementedError(f"`aten.topk` not implemented for `{ComplexTensor.__name__}`")
-
-
-@register_force_test(aten.sort)
-def sort_impl(
-    input: ComplexTensor, dim: int = -1, descending: bool = False, stable: bool = False
-) -> torch.return_types.sort:
-    msg = f"`aten.sort` not implemented for `{ComplexTensor.__name__}`"
-    if input.dtype == torch.float16:
-        if input.ndim == 0:
-            return torch.return_types.sort(
-                (torch.clone(input), torch.zeros_like(input.re, dtype=torch.int64))
-            )
-        raise NotImplementedError(msg)
-    raise ValueError(msg)
 
 
 @register_complex(aten.full_like)

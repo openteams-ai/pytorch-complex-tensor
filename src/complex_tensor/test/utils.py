@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field, fields
-from typing import Any, Callable
+from typing import Any
 
 import torch
 from torch.testing._internal.common_utils import TestCase as PytorchTestCase
@@ -77,7 +78,7 @@ class TestCase(PytorchTestCase):
             self.assertEqual(
                 spec_1, spec_2, "Both functions must return a result with the same tree structure."
             )
-            for f1, f2 in zip(flattened_1, flattened_2):
+            for f1, f2 in zip(flattened_1, flattened_2, strict=False):
                 f1 = _as_complex_tensor(f1)
                 f2 = _as_complex_tensor(f1)
 
