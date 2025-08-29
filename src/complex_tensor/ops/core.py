@@ -27,6 +27,7 @@ PROMOTE_TYPES_CPU = {
 }
 
 aten = torch.ops.aten
+prim = torch.ops.prim
 
 
 def register_complex(
