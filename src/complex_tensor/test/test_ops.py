@@ -7,7 +7,7 @@ from torch.testing._internal.common_methods_invocations import op_db
 from torch.testing._internal.common_utils import parametrize, run_tests
 from torch.testing._internal.opinfo.core import OpInfo
 
-from complex_tensor.ops.core import COMPLEX_OPS_TABLE, FORCE_TEST_LIST
+from complex_tensor.ops import COMPLEX_OPS_TABLE, FORCE_TEST_LIST
 from complex_tensor.test.utils import COMPLEX_DTYPES, TestCase, TestDescriptor, _as_complex_tensor
 
 torch._dynamo.config.recompile_limit = float("inf")
