@@ -80,7 +80,7 @@ class ComplexTensor(torch.Tensor):
     def __torch_dispatch__(
         cls, func, types: tuple[type], args: tuple = (), kwargs: dict | None = None
     ):
-        from .ops.core import lookup_complex
+        from .ops import lookup_complex
 
         kwargs = {} if kwargs is None else kwargs
 
