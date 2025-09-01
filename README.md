@@ -21,5 +21,6 @@ For now, the development setup uses the CPU version of PyTorch only.
 * Tests are located in [`src/complex_tensor/test`](https://github.com/openteams-ai/pytorch-complex-tensor/tree/main/src/complex_tensor/test).
   * Testing currently needs to be expanded; currently only tests which provide `OpInfo`s in `torch.testing._internal.common_methods_invocations.op_db` are tested.
   * Exceptions are noted in-tree with a `TODO`.
+  * A warning is emitted during `pytest` noting the missing ops.
 
 This repository is currently WIP, which means not all ops are implemented, but many common ones are.

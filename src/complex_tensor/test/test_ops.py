@@ -34,6 +34,25 @@ implemented_op_names = (
 implemented_op_db = tuple(filter(lambda op: op.name in implemented_op_names, complex_op_db))
 force_test_op_db = tuple(filter(lambda op: op.name in force_test_names, op_db))
 
+tested_op_names = {op.name for op in implemented_op_db} | {op.name for op in force_test_op_db}
+non_tested_ops = {
+    op for op in COMPLEX_OPS_TABLE if _get_opname_from_aten_op(op) not in tested_op_names
+}
+
+if len(non_tested_ops) != 0:
+    import textwrap
+    import warnings
+
+    list_missing_ops = "\n".join(
+        sorted([op._qualified_op_name.replace("::", ".") for op in non_tested_ops])
+    )
+    warnings.warn(
+        "Not all ops are tested. List of missing ops:"
+        f"\n{textwrap.indent(list_missing_ops, '    ')}",
+        UserWarning,
+        stacklevel=2,
+    )
+
 
 SKIPS = {
     TestDescriptor(op_name="real"): "`aten.real` does not hit `__torch_dispatch__`",
