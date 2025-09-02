@@ -70,7 +70,6 @@ expand_impl = register_simple(aten.expand)
 unsqueeze_impl = register_simple(aten.unsqueeze)
 mean_impl = register_simple(aten.mean)
 sum_impl = register_simple(aten.sum)
-round_impl = register_simple(aten.round)
 clone_impl = register_simple(aten.clone)
 neg_impl = register_simple(aten.neg)
 flip_impl = register_simple(aten.flip)
@@ -318,6 +317,7 @@ ERROR_OPS_LIST = [
     aten.argmin,
     aten.sort,
     aten.topk,
+    aten.round,
 ]
 
 
