@@ -4,11 +4,22 @@ import torch
 from torch._ops import OpOverload
 from torch.testing._internal.common_device_type import instantiate_device_type_tests, ops
 from torch.testing._internal.common_methods_invocations import op_db
-from torch.testing._internal.common_utils import parametrize, run_tests
+from torch.testing._internal.common_utils import (
+    TestGradients,
+    parametrize,
+    run_tests,
+    unMarkDynamoStrictTest,
+)
 from torch.testing._internal.opinfo.core import OpInfo
 
 from complex_tensor.ops import COMPLEX_OPS_TABLE, FORCE_TEST_LIST
-from complex_tensor.test.utils import COMPLEX_DTYPES, TestCase, TestDescriptor, _as_complex_tensor
+from complex_tensor.test.utils import (
+    COMPLEX_DTYPES,
+    ComplexDispatchMode,
+    TestCase,
+    TestDescriptor,
+    _as_complex_tensor,
+)
 
 torch._dynamo.config.recompile_limit = float("inf")
 torch._dynamo.config.accumulated_recompile_limit = float("inf")
@@ -99,7 +110,19 @@ class TestComplexTensor(TestCase):
             self.assertSameResult(expected, actual, ignore_exc_types=compile)
 
 
+@unMarkDynamoStrictTest
+class TestComplexBwdGradients(TestGradients):
+    @ops(implemented_op_db, allowed_dtypes=list(COMPLEX_DTYPES))
+    def test_fn_grad(self, device, dtype, op: OpInfo) -> None:
+        if dtype not in op.supported_backward_dtypes(torch.device(device).type):
+            self.skipTest("Skipped! Dtype is not in supported backward dtypes!")
+        else:
+            with ComplexDispatchMode():
+                self._grad_test_helper(device, dtype, op, op.get_op())
+
+
 instantiate_device_type_tests(TestComplexTensor, globals())
+instantiate_device_type_tests(TestComplexBwdGradients, globals())
 
 if __name__ == "__main__":
     run_tests()

@@ -4,7 +4,8 @@ from typing import Any
 import torch
 from torch._ops import OpOverloadPacket
 from torch._refs import is_complex
-from torch.utils._pytree import tree_flatten, tree_unflatten
+from torch.utils._python_dispatch import TorchDispatchMode
+from torch.utils._pytree import tree_flatten, tree_map, tree_unflatten
 
 from ..complex_tensor import ComplexTensor
 
@@ -131,7 +132,7 @@ ERROR_TYPES: dict[OpType, type[Exception]] = {}
 
 def register_binary_nonlinear(op: OpType) -> Callable:
     def impl(lhs: ComplexTensor, rhs: ComplexTensor, *args, **kwargs) -> ComplexTensor:
-        a_r, a_i = split_complex_tensor(lhs)
+        a_r, a_i = split_complex_arg(lhs)
         b_r, b_i = split_complex_arg(rhs)
         out_dt, (a_r, a_i, b_r, b_i) = promote_real_cpu_tensors(a_r, a_i, b_r, b_i)
         real = op(a_r, b_r, *args, **kwargs) - op(a_i, b_i, *args, **kwargs)
@@ -161,3 +162,30 @@ def register_simple(op: OpType):
     impl.__qualname__ = func_name
 
     return register_complex(op, impl)
+
+
+def _as_complex_tensor(arg: torch.Tensor | Any) -> torch.Tensor | ComplexTensor | Any:
+    if (
+        not isinstance(arg, ComplexTensor)
+        and isinstance(arg, torch.Tensor)
+        and arg.dtype in COMPLEX_TO_REAL
+    ):
+        return ComplexTensor.from_interleaved(arg)
+    return arg
+
+
+def _as_interleaved(arg: ComplexTensor | Any) -> torch.Tensor | Any:
+    if isinstance(arg, ComplexTensor):
+        return arg.as_interleaved()
+    return arg
+
+
+class ComplexDispatchMode(TorchDispatchMode):
+    def __torch_dispatch__(self, func, types, args=(), kwargs=None):
+        if kwargs is None:
+            kwargs = {}
+
+        args = tree_map(_as_complex_tensor, args)
+        kwargs = tree_map(_as_complex_tensor, kwargs)
+
+        return tree_map(_as_interleaved, func(*args, **kwargs))

@@ -33,7 +33,7 @@ def register_binary_linear(op: OpType):
         alpha = kwargs.pop("alpha", None)
         if alpha is not None:
             return impl_with_alpha(lhs, rhs, *args, alpha=alpha, **kwargs)
-        a_r, a_i = split_complex_tensor(lhs)
+        a_r, a_i = split_complex_arg(lhs)
         b_r, b_i = split_complex_arg(rhs)
         out_dt, (a_r, a_i, b_r, b_i) = promote_real_cpu_tensors(a_r, a_i, b_r, b_i)
         u = op(a_r, b_r, *args, **kwargs)
@@ -78,6 +78,9 @@ repeat_impl = register_simple(aten.repeat)
 index_select_impl = register_simple(aten.index_select)
 split_with_sizes_impl = register_simple(aten.split_with_sizes)
 cumsum_impl = register_simple(aten.cumsum)
+detach_impl = register_simple(aten.detach)
+select_impl = register_simple(aten.select)
+squeeze_impl = register_simple(aten.squeeze)
 
 # TODO (hameerabbasi): Not being tested
 copy_impl = register_force_test(aten.copy, register_simple(aten.copy))
@@ -502,3 +505,68 @@ logical_xor_impl = register_nonzero_impl(aten.logical_xor)
 @register_complex(aten.logical_not)
 def logical_not_impl(self: ComplexTensor, *args, **kwargs) -> torch.Tensor:
     return torch.logical_not(elemwise_nonzero(self), *args, **kwargs)
+
+
+@register_complex(aten.view_as_real)
+def view_as_real_impl(self: ComplexTensor) -> torch.Tensor:
+    re, im = split_complex_tensor(self)
+    return torch.stack([re, im], dim=-1)
+
+
+@register_complex(aten.linalg_vector_norm)
+def linalg_vector_norm_impl(self: ComplexTensor, *args, **kwargs) -> torch.Tensor:
+    return torch.linalg.vector_norm(torch.abs(self), *args, **kwargs)
+
+
+@register_force_test(aten.copy_)
+def copy__impl(self: ComplexTensor, src, *args, **kwargs):
+    self_re, self_im = split_complex_tensor(self)
+    src_re, src_im = split_complex_arg(src)
+
+    ret_re = self_re.copy_(src_re, *args, **kwargs)
+    ret_im = self_im.copy_(src_im, *args, **kwargs)
+
+    return ComplexTensor(ret_re, ret_im)
+
+
+@register_complex(aten.new_zeros)
+def new_zeros_impl(
+    self: ComplexTensor, size, *, dtype=None, **kwargs
+) -> ComplexTensor | torch.Tensor:
+    if dtype is not None and torch.dtype(dtype) not in COMPLEX_TO_REAL:
+        return self.re.new_zeros(self, size, dtype=dtype, **kwargs)
+
+    if dtype is not None:
+        dtype = COMPLEX_TO_REAL[torch.dtype(dtype)]
+
+    re = self.re.new_zeros(size, dtype=dtype, **kwargs)
+    im = self.im.new_zeros(size, dtype=dtype, **kwargs)
+
+    return ComplexTensor(re, im)
+
+
+@register_complex(aten._local_scalar_dense)
+def _local_scalar_dense_impl(self: ComplexTensor, *args, **kwargs) -> complex:
+    x, y = split_complex_tensor(self)
+    u = aten._local_scalar_dense(x, *args, **kwargs)
+    v = aten._local_scalar_dense(y, *args, **kwargs)
+    return complex(u, v)
+
+
+@register_complex(aten.allclose)
+def allclose_impl(
+    input: torch.Tensor,
+    other: torch.Tensor,
+    rtol: float = 1e-05,
+    atol: float = 1e-08,
+    equal_nan: bool = False,
+) -> torch.Tensor:
+    return torch.all(torch.isclose(input, other, rtol=rtol, atol=atol, equal_nan=equal_nan))
+
+
+@register_complex(aten.stack)
+def stack_impl(self: list[ComplexTensor], *args, **kwargs) -> ComplexTensor:
+    re_im_tuples = [split_complex_arg(self_i) for self_i in self]
+    u = torch.stack([c[0] for c in re_im_tuples], *args, **kwargs)
+    v = torch.stack([c[1] for c in re_im_tuples], *args, **kwargs)
+    return ComplexTensor(u, v)
