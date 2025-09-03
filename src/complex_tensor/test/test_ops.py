@@ -70,6 +70,9 @@ SKIPS = {
     TestDescriptor(op_name="imag"): "`aten.imag` does not hit `__torch_dispatch__`",
     TestDescriptor(op_name="repeat", dtype=torch.complex64, compile=True): "Heisenbug",
     TestDescriptor(op_name="repeat", dtype=torch.complex128, compile=True): "Heisenbug",
+    TestDescriptor(
+        op_name="allclose", compile=True
+    ): "`aten.allclose` requires data-dependent control-flow",
 }
 
 
