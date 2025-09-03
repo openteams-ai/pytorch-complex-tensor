@@ -562,8 +562,8 @@ def allclose_impl(
     rtol: float = 1e-05,
     atol: float = 1e-08,
     equal_nan: bool = False,
-) -> torch.Tensor:
-    return torch.all(torch.isclose(input, other, rtol=rtol, atol=atol, equal_nan=equal_nan))
+) -> complex:
+    return torch.all(torch.isclose(input, other, rtol=rtol, atol=atol, equal_nan=equal_nan)).item()
 
 
 @register_complex(aten.stack)
