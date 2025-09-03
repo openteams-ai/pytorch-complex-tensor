@@ -58,7 +58,7 @@ if len(non_tested_ops) != 0:
         sorted([op._qualified_op_name.replace("::", ".") for op in non_tested_ops])
     )
     warnings.warn(
-        "Not all ops are tested. List of missing ops:"
+        "Not all implemented ops are tested. List of ops missing tests:"
         f"\n{textwrap.indent(list_missing_ops, '    ')}",
         UserWarning,
         stacklevel=2,
