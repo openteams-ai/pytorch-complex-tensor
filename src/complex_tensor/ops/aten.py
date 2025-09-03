@@ -81,6 +81,8 @@ cumsum_impl = register_simple(aten.cumsum)
 detach_impl = register_simple(aten.detach)
 select_impl = register_simple(aten.select)
 squeeze_impl = register_simple(aten.squeeze)
+zero__impl = register_simple(aten.zero_)
+transpose_impl = register_simple(aten.transpose)
 
 # TODO (hameerabbasi): Not being tested
 copy_impl = register_force_test(aten.copy, register_simple(aten.copy))
@@ -533,14 +535,14 @@ def copy__impl(self: ComplexTensor, src, *args, **kwargs):
 def new_zeros_impl(
     self: ComplexTensor, size, *, dtype=None, **kwargs
 ) -> ComplexTensor | torch.Tensor:
-    if dtype is not None and torch.dtype(dtype) not in COMPLEX_TO_REAL:
-        return self.re.new_zeros(self, size, dtype=dtype, **kwargs)
+    self_re, self_im = split_complex_tensor(self)
+    if dtype is not None and dtype not in COMPLEX_TO_REAL:
+        return self_re.new_zeros(size, dtype=dtype, **kwargs)
 
     if dtype is not None:
-        dtype = COMPLEX_TO_REAL[torch.dtype(dtype)]
-
-    re = self.re.new_zeros(size, dtype=dtype, **kwargs)
-    im = self.im.new_zeros(size, dtype=dtype, **kwargs)
+        dtype = COMPLEX_TO_REAL[dtype]
+    re = self_re.new_zeros(size, dtype=dtype, **kwargs)
+    im = self_im.new_zeros(size, dtype=dtype, **kwargs)
 
     return ComplexTensor(re, im)
 
@@ -570,3 +572,17 @@ def stack_impl(self: list[ComplexTensor], *args, **kwargs) -> ComplexTensor:
     u = torch.stack([c[0] for c in re_im_tuples], *args, **kwargs)
     v = torch.stack([c[1] for c in re_im_tuples], *args, **kwargs)
     return ComplexTensor(u, v)
+
+
+@register_complex(aten.randn_like)
+def randn_like_impl(self: ComplexTensor, *, dtype=None, **kwargs) -> ComplexTensor | torch.Tensor:
+    if dtype is not None and dtype not in COMPLEX_TO_REAL:
+        return torch.randn_like(self.re, dtype=dtype, **kwargs)
+
+    if dtype is not None:
+        dtype = COMPLEX_TO_REAL[dtype]
+
+    self_re, self_im = split_complex_tensor(self)
+    ret_re = torch.randn_like(self_re, dtype=dtype, **kwargs) / 2
+    ret_im = torch.randn_like(self_im, dtype=dtype, **kwargs) / 2
+    return ComplexTensor(ret_re, ret_im)
