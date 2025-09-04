@@ -8,9 +8,9 @@ import torch
 from torch.testing._internal.common_utils import TestCase as PytorchTestCase
 from torch.utils._pytree import tree_flatten
 
-from complex_tensor.complex_tensor import ComplexTensor
+from complex_tensor.ops._common import COMPLEX_TO_REAL, _as_complex_tensor
 
-COMPLEX_DTYPES = {torch.complex128, torch.complex64, torch.complex32}
+COMPLEX_DTYPES = set(COMPLEX_TO_REAL)
 
 
 @dataclass(frozen=True)
@@ -33,16 +33,6 @@ class TestDescriptor:
                 return False
 
         return True
-
-
-def _as_complex_tensor(arg):
-    if (
-        not isinstance(arg, ComplexTensor)
-        and isinstance(arg, torch.Tensor)
-        and arg.dtype in COMPLEX_DTYPES
-    ):
-        return ComplexTensor.from_interleaved(arg)
-    return arg
 
 
 class TestCase(PytorchTestCase):
