@@ -64,6 +64,11 @@ def register_complex(
     """Decorator to register an implementation for some ops in some dispatch tables"""
 
     def inner(func):
+        if COMPLEX_OPS_TABLE.get(op, func) is not func:
+            raise RuntimeError(
+                "Attempted to register multiple functions for "
+                f"{op._qualified_op_name.replace('::', '.')}"
+            )
         COMPLEX_OPS_TABLE[op] = func
         return func
 
