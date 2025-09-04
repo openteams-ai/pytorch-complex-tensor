@@ -73,6 +73,9 @@ SKIPS = {
     TestDescriptor(
         op_name="allclose", compile=True
     ): "`aten.allclose` requires data-dependent control-flow",
+    TestDescriptor(
+        op_name="randn_like", compile=True
+    ): "`aten.randn_like` doesn't support `torch.compile`",
 }
 
 
