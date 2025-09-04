@@ -11,6 +11,7 @@ from ._common import (
 prims = torch.ops.prims
 
 
+# TODO (hameerabbasi): Not being tested
 @register_force_test(prims.convert_element_type)
 def convert_element_type_impl(x: ComplexTensor, dtype: torch.dtype) -> ComplexTensor:
     dtype = complex_to_real_dtype(dtype)

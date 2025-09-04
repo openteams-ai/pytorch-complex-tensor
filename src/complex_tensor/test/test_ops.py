@@ -125,7 +125,6 @@ class TestComplexBwdGradients(TestGradients):
 
         with ComplexDispatchMode():
             op.gradcheck_fast_mode = False
-            op.check_batched_grad = False
             self._grad_test_helper(device, dtype, op, op.get_op())
 
 
