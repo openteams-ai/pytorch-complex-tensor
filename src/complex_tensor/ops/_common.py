@@ -186,9 +186,16 @@ def _as_interleaved(arg: ComplexTensor | Any) -> torch.Tensor | Any:
 
 
 class ComplexDispatchMode(TorchDispatchMode):
+    def __init__(self, _dispatch_key=None, *, _compile=False):
+        super().__init__(_dispatch_key)
+        self._compile = _compile
+
     def __torch_dispatch__(self, func, types, args=(), kwargs=None):
         if kwargs is None:
             kwargs = {}
+
+        if compile:
+            func = torch.compile(func)
 
         args = tree_map(_as_complex_tensor, args)
         kwargs = tree_map(_as_complex_tensor, kwargs)

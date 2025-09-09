@@ -19,6 +19,7 @@ class TestDescriptor:
     device: str | None = field(default=None)
     dtype: torch.dtype | None = field(default=None)
     compile: bool | None = field(default=None)
+    gradcheck: bool | None = field(default=None)
 
     def matches(self, other: TestDescriptor) -> bool:
         fields1 = fields(self)

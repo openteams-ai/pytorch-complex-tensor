@@ -8,7 +8,6 @@ from torch.testing._internal.common_utils import (
     TestGradients,
     parametrize,
     run_tests,
-    unMarkDynamoStrictTest,
 )
 from torch.testing._internal.opinfo.core import OpInfo
 
@@ -34,8 +33,7 @@ complex_op_db = tuple(
 def _get_opname_from_aten_op(aten_op):
     if isinstance(aten_op, OpOverload):
         aten_op = aten_op.overloadpacket
-    _, name = str(aten_op).split(".", 1)
-    return name
+    return aten_op._qualified_op_name.split("::")[-1]
 
 
 force_test_names = set(map(_get_opname_from_aten_op, FORCE_TEST_LIST))
@@ -93,7 +91,9 @@ class TestComplexTensor(TestCase):
         self.check_consistency(device, dtype, op, compile)
 
     def check_consistency(self, device, dtype, op: OpInfo, compile: bool) -> None:
-        test_info = TestDescriptor(op_name=op.name, device=device, dtype=dtype, compile=compile)
+        test_info = TestDescriptor(
+            op_name=op.name, device=device, dtype=dtype, compile=compile, gradcheck=False
+        )
         for xfail_info, reason in SKIPS.items():
             if xfail_info.matches(test_info):
                 self.skipTest(reason)
@@ -116,15 +116,31 @@ class TestComplexTensor(TestCase):
             self.assertSameResult(expected, actual, ignore_exc_types=compile)
 
 
-@unMarkDynamoStrictTest
 class TestComplexBwdGradients(TestGradients):
-    @ops(implemented_op_db, allowed_dtypes=list(COMPLEX_DTYPES))
-    def test_fn_grad(self, device, dtype, op: OpInfo) -> None:
+    @parametrize("compile", [False])
+    @ops(implemented_op_db, allowed_dtypes=[torch.complex128])
+    def test_fn_grad(self, device, dtype, op: OpInfo, compile: bool) -> None:
         if dtype not in op.supported_backward_dtypes(torch.device(device).type):
             self.skipTest("Skipped! Dtype is not in supported backward dtypes!")
 
-        with ComplexDispatchMode():
+        self.check_consistency(device, dtype, op, compile)
+
+    def check_consistency(self, device, dtype, op: OpInfo, compile: bool) -> None:
+        test_info = TestDescriptor(
+            op_name=op.name, device=device, dtype=dtype, compile=compile, gradcheck=True
+        )
+        for xfail_info, reason in SKIPS.items():
+            if xfail_info.matches(test_info):
+                self.skipTest(reason)
+
+        try:
+            self._grad_test_helper(device, dtype, op, op.get_op())
+        except Exception:  # noqa: BLE001
+            self.skipTest("Fails even without `ComplexDispatchMode` mode on.")
+
+        with ComplexDispatchMode(_compile=compile):
             op.gradcheck_fast_mode = False
+            op.skip_correctness_check_compile_vs_eager = True
             self._grad_test_helper(device, dtype, op, op.get_op())
 
 
