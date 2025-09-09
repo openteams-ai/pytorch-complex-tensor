@@ -62,49 +62,56 @@ def is_pinned_impl(self: ComplexTensor, device: torch.device | None = None) -> b
     return self.is_pinned(device)
 
 
-slice_impl = register_simple(aten.slice)
-flatten_impl = register_simple(aten.flatten)
-view_impl = register_simple(aten.view)
-diagonal_impl = register_simple(aten.diagonal)
-expand_impl = register_simple(aten.expand)
-unsqueeze_impl = register_simple(aten.unsqueeze)
-mean_impl = register_simple(aten.mean)
-sum_impl = register_simple(aten.sum)
-clone_impl = register_simple(aten.clone)
-neg_impl = register_simple(aten.neg)
-flip_impl = register_simple(aten.flip)
-permute_impl = register_simple(aten.permute)
-repeat_impl = register_simple(aten.repeat)
-index_select_impl = register_simple(aten.index_select)
-split_with_sizes_impl = register_simple(aten.split_with_sizes)
-cumsum_impl = register_simple(aten.cumsum)
-detach_impl = register_simple(aten.detach)
-select_impl = register_simple(aten.select)
-squeeze_impl = register_simple(aten.squeeze)
-zero__impl = register_simple(aten.zero_)
-transpose_impl = register_simple(aten.transpose)
-t_impl = register_simple(aten.t)
-zeros_like_impl = register_simple(aten.zeros_like)
-masked_scatter_backward_impl = register_simple(aten.masked_scatter_backward)
-select_backward_impl = register_simple(aten.select_backward)
-slice_backward_impl = register_simple(aten.slice_backward)
+SIMPLE_OPS_LIST = [
+    aten.slice,
+    aten.flatten,
+    aten.view,
+    aten.diagonal,
+    aten.expand,
+    aten.unsqueeze,
+    aten.mean,
+    aten.sum,
+    aten.clone,
+    aten.neg,
+    aten.flip,
+    aten.permute,
+    aten.repeat,
+    aten.index_select,
+    aten.split_with_sizes,
+    aten.cumsum,
+    aten.detach,
+    aten.select,
+    aten.squeeze,
+    aten.zero_,
+    aten.transpose,
+    aten.t,
+    aten.zeros_like,
+    aten.masked_scatter_backward,
+    aten.select_backward,
+    aten.slice_backward,
+]
+
+for simple_op in SIMPLE_OPS_LIST:
+    globals()[f"{str(simple_op).split('.', 1)}_impl"] = register_simple(simple_op)
 
 # TODO (hameerabbasi): Not being tested
-copy_impl = register_force_test(aten.copy, register_simple(aten.copy))
-# TODO (hameerabbasi): Not being tested
-_to_copy_impl = register_force_test(aten._to_copy, register_simple(aten._to_copy))
-# TODO (hameerabbasi): Not being tested
-col2im_impl = register_force_test(aten.col2im, register_simple(aten.col2im))
-# TODO (hameerabbasi): Not being tested
-alias_impl = register_force_test(aten.alias, register_simple(aten.alias))
-# TODO (hameerabbasi): Not being tested
-lift_fresh_impl = register_force_test(aten.lift_fresh, register_simple(aten.lift_fresh))
-# TODO (hameerabbasi): Not being tested
-_unsafe_view_impl = register_force_test(aten._unsafe_view, register_simple(aten._unsafe_view))
-# TODO (hameerabbasi): Not being tested
-index_put__impl = register_force_test(aten.index_put_, register_simple(aten.index_put_))
-# TODO (hameerabbasi): Not being tested
-index_impl = register_force_test(aten.index, register_simple(aten.index))
+SIMPLE_FORCE_TESTED_OPS = [
+    aten.copy,
+    aten._to_copy,
+    aten.col2im,
+    aten.alias,
+    aten.lift_fresh,
+    aten._unsafe_view,
+    aten.index_put_,
+    aten.index,
+]
+
+for simple_op in SIMPLE_FORCE_TESTED_OPS:
+    globals()[f"{str(simple_op).split('.', 1)}_impl"] = register_force_test(
+        simple_op, register_simple(simple_op)
+    )
+
+del simple_op
 
 # some binary ops which we can stamp out
 mul_impl = register_binary_nonlinear(aten.mul)
