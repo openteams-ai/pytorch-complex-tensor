@@ -69,6 +69,7 @@ SIMPLE_OPS_LIST = [
     aten.diagonal,
     aten.expand,
     aten.unsqueeze,
+    aten.unsqueeze_,
     aten.mean,
     aten.sum,
     aten.clone,
@@ -88,6 +89,7 @@ SIMPLE_OPS_LIST = [
     aten.t,
     aten.zeros_like,
     aten.empty_like,
+    aten.gather,
 ]
 
 for simple_op in SIMPLE_OPS_LIST:
@@ -111,6 +113,7 @@ SIMPLE_FORCE_TESTED_OPS = [
     aten.masked_scatter_backward,
     aten.select_backward,
     aten.slice_backward,
+    aten.embedding,
 ]
 
 for simple_op in SIMPLE_FORCE_TESTED_OPS:
