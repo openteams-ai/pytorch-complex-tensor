@@ -9,6 +9,7 @@ from ._common import (
 )
 
 prims = torch.ops.prims
+aten = torch.ops.aten
 
 
 # TODO (hameerabbasi): Not being tested
@@ -23,7 +24,10 @@ def convert_element_type_impl(x: ComplexTensor, dtype: torch.dtype) -> ComplexTe
 
 
 @register_complex(prims.conj_physical)
-@register_complex(prims.conj)
 def conj_physical_impl(self: ComplexTensor) -> ComplexTensor:
-    re, im = split_complex_tensor(self)
-    return ComplexTensor(re, -im)
+    return aten._conj_physical(self)
+
+
+@register_complex(prims.conj)
+def conj_impl(self: ComplexTensor) -> ComplexTensor:
+    return aten._conj(self)

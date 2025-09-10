@@ -77,6 +77,7 @@ SIMPLE_OPS_LIST = [
     aten.permute,
     aten.repeat,
     aten.index_select,
+    aten.split,
     aten.split_with_sizes,
     aten.cumsum,
     aten.detach,
@@ -86,9 +87,7 @@ SIMPLE_OPS_LIST = [
     aten.transpose,
     aten.t,
     aten.zeros_like,
-    aten.masked_scatter_backward,
-    aten.select_backward,
-    aten.slice_backward,
+    aten.empty_like,
 ]
 
 for simple_op in SIMPLE_OPS_LIST:
@@ -104,6 +103,14 @@ SIMPLE_FORCE_TESTED_OPS = [
     aten._unsafe_view,
     aten.index_put_,
     aten.index,
+    aten._neg_view,
+    aten.avg_pool2d,
+    aten.avg_pool3d,
+    aten.avg_pool2d_backward,
+    aten.avg_pool3d_backward,
+    aten.masked_scatter_backward,
+    aten.select_backward,
+    aten.slice_backward,
 ]
 
 for simple_op in SIMPLE_FORCE_TESTED_OPS:
@@ -124,11 +131,20 @@ convolution_impl = register_force_test(
     aten.convolution, register_binary_nonlinear(aten.convolution)
 )
 
+slice_scatter_impl = register_force_test(
+    aten.slice_scatter, register_binary_linear(aten.slice_scatter)
+)
+select_scatter_impl = register_force_test(
+    aten.select_scatter, register_binary_linear(aten.select_scatter)
+)
+
 add_impl = register_binary_linear(aten.add)
 sub_impl = register_binary_linear(aten.sub)
+diagonal_scatter_impl = register_binary_linear(aten.diagonal_scatter)
 
 
 @register_complex(aten.div)
+@register_complex(aten.true_divide)
 def div_impl(lhs: ComplexTensor, rhs: ComplexTensor, *, rounding_mode=None):
     a_r, a_i = split_complex_tensor(lhs)
     b_r, b_i = split_complex_arg(rhs)
@@ -371,6 +387,13 @@ def log_impl(self: ComplexTensor) -> ComplexTensor:
     return ComplexTensor(re, im)
 
 
+@register_complex(aten.log1p)
+def log1p_impl(self: ComplexTensor) -> ComplexTensor:
+    x, y = split_complex_tensor(self)
+    # TODO (hameerabbasi): The line below may have numerical issues
+    return torch.log(ComplexTensor(x + 1, y))
+
+
 @register_complex(aten.any)
 def any_impl(self: ComplexTensor, *args, **kwargs) -> torch.Tensor:
     x, y = split_complex_tensor(self)
@@ -457,6 +480,7 @@ ERROR_OPS_LIST = [
     aten.sort,
     aten.topk,
     aten.round,
+    aten.fmod,
 ]
 
 
@@ -486,23 +510,6 @@ def masked_scatter_impl(
     source_r, source_i = split_complex_arg(source)
     ret_r = torch.masked_scatter(self_r, mask, source_r)
     ret_i = torch.masked_scatter(self_i, mask, source_i)
-
-    return ComplexTensor(ret_r, ret_i)
-
-
-@register_force_test(aten.slice_scatter)
-def slice_scatter_impl(
-    self: ComplexTensor,
-    source: ComplexTensor,
-    dim: int = 0,
-    start: int | None = None,
-    end: int | None = None,
-    step: int = 1,
-) -> ComplexTensor:
-    self_r, self_i = split_complex_tensor(self)
-    source_r, source_i = split_complex_arg(source)
-    ret_r = torch.slice_scatter(self_r, source_r, dim=dim, start=start, end=end, step=step)
-    ret_i = torch.slice_scatter(self_i, source_i, dim=dim, start=start, end=end, step=step)
 
     return ComplexTensor(ret_r, ret_i)
 
@@ -724,10 +731,15 @@ def randn_like_impl(self: ComplexTensor, *, dtype=None, **kwargs) -> ComplexTens
 
 # TODO (hameerabbasi): Not being tested
 @register_complex(aten._conj_physical)
-@register_complex(aten._conj)
 def _conj_physical_impl(self: ComplexTensor) -> ComplexTensor:
     re, im = split_complex_tensor(self)
     return ComplexTensor(re, -im)
+
+
+@register_complex(aten._conj)
+def _conj_impl(self: ComplexTensor) -> ComplexTensor:
+    re, im = split_complex_tensor(self)
+    return ComplexTensor(re, aten._neg_view(im))
 
 
 @register_complex(aten.index_add)
@@ -783,5 +795,19 @@ def masked_fill__impl(self: ComplexTensor, mask: torch.Tensor, value: complex) -
 
     ret_re = self_re.masked_fill_(mask, value_re)
     ret_im = self_im.masked_fill_(mask, value_im)
+
+    return ComplexTensor(ret_re, ret_im)
+
+
+@register_complex(aten.constant_pad_nd)
+def constant_pad_nd_impl(self: ComplexTensor, pad, value: complex | None = None):
+    self_re, self_im = split_complex_tensor(self)
+    if value is None:
+        ret_re = aten.constant_pad_nd(self_re, pad)
+        ret_im = aten.constant_pad_nd(self_im, pad)
+    else:
+        value_re, value_im = split_complex_arg(value)
+        ret_re = aten.constant_pad_nd(self_re, pad, value_re)
+        ret_im = aten.constant_pad_nd(self_im, pad, value_im)
 
     return ComplexTensor(ret_re, ret_im)
