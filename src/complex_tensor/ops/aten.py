@@ -800,7 +800,7 @@ def masked_fill__impl(self: ComplexTensor, mask: torch.Tensor, value: complex) -
 
 
 @register_complex(aten.constant_pad_nd)
-def constant_pad_nd_impl(self: ComplexTensor, pad, value: complex | None = None):
+def constant_pad_nd_impl(self: ComplexTensor, pad, value: complex | None = None) -> ComplexTensor:
     self_re, self_im = split_complex_tensor(self)
     if value is None:
         ret_re = aten.constant_pad_nd(self_re, pad)
@@ -811,3 +811,9 @@ def constant_pad_nd_impl(self: ComplexTensor, pad, value: complex | None = None)
         ret_im = aten.constant_pad_nd(self_im, pad, value_im)
 
     return ComplexTensor(ret_re, ret_im)
+
+
+@register_complex(aten.var)
+def var_impl(self: ComplexTensor, *args, **kwargs) -> torch.Tensor:
+    self_re, self_im = split_complex_tensor(self)
+    return torch.var(self_re, *args, **kwargs) + torch.var(self_im, *args, **kwargs)

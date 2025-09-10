@@ -70,6 +70,9 @@ SKIPS = {
     TestDescriptor(
         op_name="randn_like", compile=True
     ): "`aten.randn_like` doesn't support `torch.compile`",
+    TestDescriptor(
+        op_name="var", compile=True
+    ): "`aten.var` doesn't return valid results with `torch.compile`",
 }
 
 
