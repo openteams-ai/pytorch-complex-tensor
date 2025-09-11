@@ -152,10 +152,17 @@ def register_binary_nonlinear(op: OpType) -> Callable:
 
 
 def register_simple(op: OpType):
-    def impl(self: ComplexTensor, *args, **kwargs) -> ComplexTensor:
+    def impl(self: ComplexTensor, *args, dtype=None, **kwargs) -> ComplexTensor:
         x, y = split_complex_tensor(self)
-        u = op(x, *args, **kwargs)
-        v = op(y, *args, **kwargs)
+        if dtype is None:
+            u = op(x, *args, **kwargs)
+            v = op(y, *args, **kwargs)
+        elif dtype in COMPLEX_TO_REAL:
+            dtype = COMPLEX_TO_REAL[dtype]
+            u = op(x, *args, dtype=dtype, **kwargs)
+            v = op(y, *args, dtype=dtype, **kwargs)
+        else:
+            raise RuntimeError("Non-complex `dtype` specified, please write custom impl.")
         u_flat, u_spec = tree_flatten(u)
         v_flat, v_spec = tree_flatten(v)
         assert u_spec == v_spec

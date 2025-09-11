@@ -87,8 +87,6 @@ SIMPLE_OPS_LIST = [
     aten.zero_,
     aten.transpose,
     aten.t,
-    aten.zeros_like,
-    aten.empty_like,
     aten.gather,
 ]
 
@@ -259,11 +257,13 @@ def atan_impl(self: ComplexTensor) -> ComplexTensor:
     x, y = split_complex_tensor(self)
     out_dt, (x, y) = promote_real_cpu_tensors(x, y)
 
-    int1 = 0.5 * (torch.log(ComplexTensor(1 - y, x)) - torch.log(ComplexTensor(1 + y, -x)))
-
+    int1 = torch.log(ComplexTensor(-x, 1 - y) / ComplexTensor(x, 1 + y))
     int1_re, int1_im = split_complex_tensor(int1)
 
-    return ComplexTensor(-int1_im.to(out_dt), int1_re.to(out_dt))
+    out_re = 0.5 * int1_im
+    out_im = -0.5 * int1_re
+
+    return ComplexTensor(out_re.to(out_dt), out_im.to(out_dt))
 
 
 @register_complex(aten.asinh)
@@ -298,11 +298,9 @@ def cos_impl(self: ComplexTensor) -> ComplexTensor:
 
 @register_complex(aten.cosh)
 def cosh_impl(self: ComplexTensor) -> ComplexTensor:
-    self_re, self_im = split_complex_tensor(self)
-    out_dt, (self_re, self_im) = promote_real_cpu_tensors(self_re, self_im)
-    ret_re = torch.cosh(self_re) * torch.cos(self_im)
-    ret_im = torch.sinh(self_re) * torch.sin(self_im)
-    return ComplexTensor(ret_re.to(out_dt), ret_im.to(out_dt))
+    exp_x = torch.exp(self)
+    exp_nx = torch.reciprocal(exp_x)
+    return 0.5 * (exp_x + exp_nx)
 
 
 @register_complex(aten.sin)
@@ -318,13 +316,9 @@ def sin_impl(self: ComplexTensor) -> ComplexTensor:
 
 @register_complex(aten.sinh)
 def sinh_impl(self: ComplexTensor) -> ComplexTensor:
-    self_re, self_im = split_complex_tensor(self)
-    out_dt, (self_re, self_im) = promote_real_cpu_tensors(self_re, self_im)
-
-    ret_re = torch.sinh(self_re) * torch.cos(self_im)
-    ret_im = torch.cosh(self_re) * torch.sin(self_im)
-
-    return ComplexTensor(ret_re.to(out_dt), ret_im.to(out_dt))
+    exp_x = torch.exp(self)
+    exp_nx = torch.reciprocal(exp_x)
+    return 0.5 * (exp_x - exp_nx)
 
 
 @register_complex(aten.tan)
@@ -345,21 +339,7 @@ def tan_impl(self: ComplexTensor) -> ComplexTensor:
 
 @register_complex(aten.tanh)
 def tanh_impl(self: ComplexTensor) -> ComplexTensor:
-    self_re, self_im = split_complex_tensor(self)
-    out_dt, (self_re, self_im) = promote_real_cpu_tensors(self_re, self_im)
-
-    tanh_x = torch.tanh(self_re)
-    tan_y = torch.tan(self_im)
-
-    tanh2_x = tanh_x * tanh_x
-    tan2_y = tan_y * tan_y
-
-    num_re = tanh_x * (1 + tan2_y)
-    num_im = -tan_y * (1 + tanh2_x)
-
-    den = 1 + tanh2_x * tan2_y
-
-    return ComplexTensor((num_re / den).to(out_dt), (num_im / den).to(out_dt))
+    return torch.sinh(self) / torch.cosh(self)
 
 
 @register_complex(aten.exp)
@@ -411,7 +391,7 @@ def all_impl(self: ComplexTensor, *args, **kwargs) -> torch.Tensor:
 
 @register_complex(aten.eq)
 def eq_impl(self: ComplexTensor, rhs: ComplexTensor, *args, **kwargs) -> torch.Tensor:
-    a_r, a_i = split_complex_tensor(self)
+    a_r, a_i = split_complex_arg(self)
     b_r, b_i = split_complex_arg(rhs)
     return torch.eq(a_r, b_r, *args, **kwargs) & torch.eq(a_i, b_i, *args, **kwargs)
 
@@ -544,12 +524,63 @@ def where_impl(mask: torch.Tensor, x: ComplexTensor, y: ComplexTensor) -> Comple
 
 
 @register_complex(aten.full_like)
-def full_like_impl(input: ComplexTensor, fill_value: complex, *args, **kwargs) -> ComplexTensor:
+def full_like_impl(
+    input: ComplexTensor, fill_value: complex, *args, **kwargs
+) -> torch.Tensor | ComplexTensor:
+    dtype = kwargs.pop("dtype", None)
     input_r, input_i = split_complex_tensor(input)
     fv_r, fv_i = split_complex_arg(fill_value)
+    if dtype is None:
+        ret_r = torch.full_like(input_r, fv_r, *args, **kwargs)
+        ret_i = torch.full_like(input_i, fv_i, *args, **kwargs)
+        return ComplexTensor(ret_r, ret_i)
 
-    ret_r = torch.full_like(input_r, fv_r, *args, **kwargs)
-    ret_i = torch.full_like(input_i, fv_i, *args, **kwargs)
+    if dtype not in COMPLEX_TO_REAL:
+        return torch.full_like(input_r, fill_value, *args, dtype=dtype, **kwargs)
+
+    dtype = COMPLEX_TO_REAL[dtype]
+    ret_r = torch.full_like(input_r, fv_r, *args, dtype=dtype, **kwargs)
+    ret_i = torch.full_like(input_i, fv_i, *args, dtype=dtype, **kwargs)
+
+    return ComplexTensor(ret_r, ret_i)
+
+
+@register_complex(aten.empty_like)
+def empty_like_impl(
+    input: ComplexTensor, fill_value: complex, *args, **kwargs
+) -> torch.Tensor | ComplexTensor:
+    dtype = kwargs.pop("dtype", None)
+    input_r, input_i = split_complex_tensor(input)
+    if dtype is None:
+        ret_r = torch.empty_like(input_r, *args, **kwargs)
+        ret_i = torch.empty_like(input_i, *args, **kwargs)
+        return ComplexTensor(ret_r, ret_i)
+
+    if dtype not in COMPLEX_TO_REAL:
+        return torch.empty_like(input_r, *args, dtype=dtype, **kwargs)
+
+    dtype = COMPLEX_TO_REAL[dtype]
+    ret_r = torch.empty_like(input_r, *args, dtype=dtype, **kwargs)
+    ret_i = torch.empty_like(input_i, *args, dtype=dtype, **kwargs)
+
+    return ComplexTensor(ret_r, ret_i)
+
+
+@register_complex(aten.zeros_like)
+def zeros_like_impl(input: ComplexTensor, *args, **kwargs) -> torch.Tensor | ComplexTensor:
+    dtype = kwargs.pop("dtype", None)
+    input_r, input_i = split_complex_tensor(input)
+    if dtype is None:
+        ret_r = torch.zeros_like(input_r, *args, **kwargs)
+        ret_i = torch.zeros_like(input_i, *args, **kwargs)
+        return ComplexTensor(ret_r, ret_i)
+
+    if dtype not in COMPLEX_TO_REAL:
+        return torch.zeros_like(input_r, *args, dtype=dtype, **kwargs)
+
+    dtype = COMPLEX_TO_REAL[dtype]
+    ret_r = torch.zeros_like(input_r, *args, dtype=dtype, **kwargs)
+    ret_i = torch.zeros_like(input_i, *args, dtype=dtype, **kwargs)
 
     return ComplexTensor(ret_r, ret_i)
 
@@ -619,7 +650,7 @@ def addmm_impl(
     beta: complex = 1,
     alpha: complex = 1,
 ) -> ComplexTensor:
-    ret = alpha * input + beta * torch.mm(mat1, mat2)
+    ret = beta * input + alpha * torch.mm(mat1, mat2)
     ret_r, ret_i = split_complex_tensor(ret)
     if out_dtype is not None:
         out_dtype = COMPLEX_TO_REAL[out_dtype]
@@ -739,6 +770,7 @@ def _conj_physical_impl(self: ComplexTensor) -> ComplexTensor:
     return ComplexTensor(re, -im)
 
 
+# TODO (hameerabbasi): Not being tested
 @register_complex(aten._conj)
 def _conj_impl(self: ComplexTensor) -> ComplexTensor:
     re, im = split_complex_tensor(self)

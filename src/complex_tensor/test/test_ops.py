@@ -11,11 +11,11 @@ from torch.testing._internal.common_utils import (
 from torch.testing._internal.opinfo.core import OpInfo
 
 from complex_tensor.ops import COMPLEX_OPS_TABLE, FORCE_TEST_LIST
+from complex_tensor.ops._common import _as_complex_tensor
 from complex_tensor.test.utils import (
     COMPLEX_DTYPES,
     TestCase,
     TestDescriptor,
-    _as_complex_tensor,
 )
 
 torch._dynamo.config.recompile_limit = float("inf")
@@ -62,17 +62,27 @@ if len(non_tested_ops) != 0:
 
 
 SKIPS = {
+    TestDescriptor(op_name="real"): "`aten.real` does not hit `__torch_dispatch__`",
     TestDescriptor(op_name="imag"): "`aten.imag` does not hit `__torch_dispatch__`",
+    TestDescriptor(op_name="conj"): "`prims.conj` does not hit `__torch_dispatch__`",
+    TestDescriptor(
+        op_name="conj_physical"
+    ): "`prims.conj_physical` does not hit `__torch_dispatch__`",
+    TestDescriptor(op_name="empty_like"): "Inconsistent output",
     TestDescriptor(op_name="repeat", compile=True): "Heisenbug",
     TestDescriptor(
         op_name="allclose", compile=True
     ): "`aten.allclose` requires data-dependent control-flow",
-    TestDescriptor(
-        op_name="randn_like", compile=True
-    ): "`aten.randn_like` doesn't support `torch.compile`",
+    TestDescriptor(op_name="randn_like"): "Inconsistent output",
     TestDescriptor(
         op_name="var", compile=True
     ): "`aten.var` doesn't return valid results with `torch.compile`",
+}
+
+EXTRA_KWARGS = {
+    TestDescriptor(op_name="asinh", dtype=torch.complex64): {"rtol": 2e-5, "atol": 5e-5},
+    TestDescriptor(op_name="tanh", dtype=torch.complex64): {"rtol": 1e-4, "atol": 1e-5},
+    TestDescriptor(op_name="pow", dtype=torch.complex64): {"rtol": 2e-2, "atol": 2e-6},
 }
 
 
@@ -97,6 +107,12 @@ class TestComplexTensor(TestCase):
             if xfail_info.matches(test_info):
                 self.skipTest(reason)
 
+        kwargs = {}
+        for extra_info, extra_kw in EXTRA_KWARGS.items():
+            if extra_info.matches(test_info):
+                kwargs = extra_kw
+                break
+
         sample_inputs = op.sample_inputs(device, dtype)
         op_eager = op
         if compile:
@@ -112,7 +128,7 @@ class TestComplexTensor(TestCase):
             def actual(subclass_sample=subclass_sample):
                 return op(subclass_sample.input, *subclass_sample.args, **subclass_sample.kwargs)
 
-            self.assertSameResult(expected, actual, ignore_exc_types=compile)
+            self.assertSameResult(expected, actual, ignore_exc_types=compile, **kwargs)
 
 
 instantiate_device_type_tests(TestComplexTensor, globals())

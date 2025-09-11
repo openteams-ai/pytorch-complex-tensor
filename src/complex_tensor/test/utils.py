@@ -8,7 +8,7 @@ import torch
 from torch.testing._internal.common_utils import TestCase as PytorchTestCase
 from torch.utils._pytree import tree_flatten
 
-from complex_tensor.ops._common import COMPLEX_TO_REAL, _as_complex_tensor
+from complex_tensor.ops._common import COMPLEX_TO_REAL, _as_interleaved
 
 COMPLEX_DTYPES = set(COMPLEX_TO_REAL)
 
@@ -71,8 +71,8 @@ class TestCase(PytorchTestCase):
             self.assertEqual(
                 spec_e, spec_a, "Both functions must return a result with the same tree structure."
             )
-            for value_e, value_a in zip(flattened_e, flattened_a, strict=False):
-                value_e = _as_complex_tensor(value_e)
-                value_a = _as_complex_tensor(value_a)
+            for value_e, value_a in zip(flattened_e, flattened_a, strict=True):
+                value_e = _as_interleaved(value_e)
+                value_a = _as_interleaved(value_a)
 
                 self.assertEqual(value_e, value_a, *args, **kwargs)
