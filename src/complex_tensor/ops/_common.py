@@ -152,17 +152,19 @@ def register_binary_nonlinear(op: OpType) -> Callable:
 
 
 def register_simple(op: OpType):
-    def impl(self: ComplexTensor, *args, dtype=None, **kwargs) -> ComplexTensor:
+    def impl(
+        self: ComplexTensor, *args, dtype: torch.dtype | None = None, **kwargs
+    ) -> ComplexTensor:
         x, y = split_complex_tensor(self)
-        if dtype is None:
-            u = op(x, *args, **kwargs)
-            v = op(y, *args, **kwargs)
-        elif dtype in COMPLEX_TO_REAL:
-            dtype = COMPLEX_TO_REAL[dtype]
-            u = op(x, *args, dtype=dtype, **kwargs)
-            v = op(y, *args, dtype=dtype, **kwargs)
-        else:
+        if dtype is not None and dtype not in COMPLEX_TO_REAL:
             raise RuntimeError("Non-complex `dtype` specified, please write custom impl.")
+
+        if dtype in COMPLEX_TO_REAL:
+            kwargs["dtype"] = COMPLEX_TO_REAL[dtype]
+
+        u = op(x, *args, **kwargs)
+        v = op(y, *args, **kwargs)
+
         u_flat, u_spec = tree_flatten(u)
         v_flat, v_spec = tree_flatten(v)
         assert u_spec == v_spec

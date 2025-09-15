@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 import torch
 
@@ -525,64 +525,58 @@ def where_impl(mask: torch.Tensor, x: ComplexTensor, y: ComplexTensor) -> Comple
 
 @register_complex(aten.full_like)
 def full_like_impl(
-    input: ComplexTensor, fill_value: complex, *args, **kwargs
+    input: ComplexTensor, fill_value: complex, *args, dtype: torch.dtype | None = None, **kwargs
 ) -> torch.Tensor | ComplexTensor:
-    dtype = kwargs.pop("dtype", None)
+    # Note: Cannot be merged with the cases below due to the `fill_value` argument
     input_r, input_i = split_complex_tensor(input)
-    fv_r, fv_i = split_complex_arg(fill_value)
-    if dtype is None:
-        ret_r = torch.full_like(input_r, fv_r, *args, **kwargs)
-        ret_i = torch.full_like(input_i, fv_i, *args, **kwargs)
-        return ComplexTensor(ret_r, ret_i)
-
-    if dtype not in COMPLEX_TO_REAL:
+    if dtype is not None and dtype not in COMPLEX_TO_REAL:
         return torch.full_like(input_r, fill_value, *args, dtype=dtype, **kwargs)
 
-    dtype = COMPLEX_TO_REAL[dtype]
-    ret_r = torch.full_like(input_r, fv_r, *args, dtype=dtype, **kwargs)
-    ret_i = torch.full_like(input_i, fv_i, *args, dtype=dtype, **kwargs)
+    if dtype is not None:
+        kwargs["dtype"] = COMPLEX_TO_REAL[dtype]
+
+    fv_r, fv_i = split_complex_arg(fill_value)
+    ret_r = torch.full_like(input_r, fv_r, *args, **kwargs)
+    ret_i = torch.full_like(input_i, fv_i, *args, **kwargs)
 
     return ComplexTensor(ret_r, ret_i)
 
 
-@register_complex(aten.empty_like)
-def empty_like_impl(
-    input: ComplexTensor, fill_value: complex, *args, **kwargs
-) -> torch.Tensor | ComplexTensor:
-    dtype = kwargs.pop("dtype", None)
-    input_r, input_i = split_complex_tensor(input)
-    if dtype is None:
-        ret_r = torch.empty_like(input_r, *args, **kwargs)
-        ret_i = torch.empty_like(input_i, *args, **kwargs)
-        return ComplexTensor(ret_r, ret_i)
+def register_like(op: OpType) -> Callable[..., torch.Tensor | ComplexTensor]:
+    def impl(
+        self: ComplexTensor, *args, dtype: torch.dtype | None = None, **kwargs
+    ) -> torch.Tensor | ComplexTensor:
+        self_re, self_im = split_complex_tensor(self)
 
-    if dtype not in COMPLEX_TO_REAL:
-        return torch.empty_like(input_r, *args, dtype=dtype, **kwargs)
+        if dtype is not None and dtype not in COMPLEX_TO_REAL:
+            return op(self_re, *args, dtype=dtype, **kwargs)
 
-    dtype = COMPLEX_TO_REAL[dtype]
-    ret_r = torch.empty_like(input_r, *args, dtype=dtype, **kwargs)
-    ret_i = torch.empty_like(input_i, *args, dtype=dtype, **kwargs)
+        if dtype is not None:
+            kwargs["dtype"] = COMPLEX_TO_REAL[dtype]
 
-    return ComplexTensor(ret_r, ret_i)
+        ret_re = op(self_re, *args, **kwargs)
+        ret_im = op(self_im, *args, **kwargs)
+
+        return ComplexTensor(ret_re, ret_im)
+
+    func_name = f"{str(op).split('.', 1)}_impl"
+    impl.__name__ = func_name
+    impl.__qualname__ = func_name
+
+    return register_complex(op, impl)
 
 
-@register_complex(aten.zeros_like)
-def zeros_like_impl(input: ComplexTensor, *args, **kwargs) -> torch.Tensor | ComplexTensor:
-    dtype = kwargs.pop("dtype", None)
-    input_r, input_i = split_complex_tensor(input)
-    if dtype is None:
-        ret_r = torch.zeros_like(input_r, *args, **kwargs)
-        ret_i = torch.zeros_like(input_i, *args, **kwargs)
-        return ComplexTensor(ret_r, ret_i)
+LIKE_OPS_LIST = [
+    aten.empty_like,
+    aten.zeros_like,
+    aten.randn_like,
+    aten.new_zeros,
+]
 
-    if dtype not in COMPLEX_TO_REAL:
-        return torch.zeros_like(input_r, *args, dtype=dtype, **kwargs)
+for like_op in LIKE_OPS_LIST:
+    globals()[f"{str(like_op).split('.', 1)}_impl"] = register_like(like_op)
 
-    dtype = COMPLEX_TO_REAL[dtype]
-    ret_r = torch.zeros_like(input_r, *args, dtype=dtype, **kwargs)
-    ret_i = torch.zeros_like(input_i, *args, dtype=dtype, **kwargs)
-
-    return ComplexTensor(ret_r, ret_i)
+del like_op
 
 
 @register_complex(aten.cat)
@@ -706,22 +700,6 @@ def copy__impl(self: ComplexTensor, src, *args, **kwargs):
     return ComplexTensor(ret_re, ret_im)
 
 
-@register_complex(aten.new_zeros)
-def new_zeros_impl(
-    self: ComplexTensor, size, *, dtype=None, **kwargs
-) -> ComplexTensor | torch.Tensor:
-    self_re, self_im = split_complex_tensor(self)
-    if dtype is not None and dtype not in COMPLEX_TO_REAL:
-        return self_re.new_zeros(size, dtype=dtype, **kwargs)
-
-    if dtype is not None:
-        dtype = COMPLEX_TO_REAL[dtype]
-    re = self_re.new_zeros(size, dtype=dtype, **kwargs)
-    im = self_im.new_zeros(size, dtype=dtype, **kwargs)
-
-    return ComplexTensor(re, im)
-
-
 @register_complex(aten._local_scalar_dense)
 def _local_scalar_dense_impl(self: ComplexTensor, *args, **kwargs) -> complex:
     x, y = split_complex_tensor(self)
@@ -747,20 +725,6 @@ def stack_impl(self: list[ComplexTensor], *args, **kwargs) -> ComplexTensor:
     u = torch.stack([c[0] for c in re_im_tuples], *args, **kwargs)
     v = torch.stack([c[1] for c in re_im_tuples], *args, **kwargs)
     return ComplexTensor(u, v)
-
-
-@register_complex(aten.randn_like)
-def randn_like_impl(self: ComplexTensor, *, dtype=None, **kwargs) -> ComplexTensor | torch.Tensor:
-    if dtype is not None and dtype not in COMPLEX_TO_REAL:
-        return torch.randn_like(self.re, dtype=dtype, **kwargs)
-
-    if dtype is not None:
-        dtype = COMPLEX_TO_REAL[dtype]
-
-    self_re, self_im = split_complex_tensor(self)
-    ret_re = 0.5 * torch.randn_like(self_re, dtype=dtype, **kwargs)
-    ret_im = 0.5 * torch.randn_like(self_im, dtype=dtype, **kwargs)
-    return ComplexTensor(ret_re, ret_im)
 
 
 # TODO (hameerabbasi): Not being tested
