@@ -34,8 +34,8 @@ dependencies = [
     { name = "expecttest" },
     { name = "numpy" },
     { name = "pytest" },
-    { name = "torch", version = "2.9.0.dev20250828", source = { registry = "https://download.pytorch.org/whl/nightly/cpu" }, marker = "sys_platform == 'darwin'" },
-    { name = "torch", version = "2.9.0.dev20250828+cpu", source = { registry = "https://download.pytorch.org/whl/nightly/cpu" }, marker = "sys_platform != 'darwin'" },
+    { name = "torch", version = "2.9.0.dev20250907", source = { registry = "https://download.pytorch.org/whl/nightly/cpu" }, marker = "sys_platform == 'darwin'" },
+    { name = "torch", version = "2.9.0.dev20250907+cpu", source = { registry = "https://download.pytorch.org/whl/nightly/cpu" }, marker = "sys_platform != 'darwin'" },
 ]
 
 [package.optional-dependencies]
@@ -99,11 +99,11 @@ wheels = [
 
 [[package]]
 name = "executing"
-version = "2.2.0"
+version = "2.2.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/91/50/a9d80c47ff289c611ff12e63f7c5d13942c65d68125160cefd768c73e6e4/executing-2.2.0.tar.gz", hash = "sha256:5d108c028108fe2551d1a7b2e8b713341e2cb4fc0aa7dcf966fa4327a5226755", size = 978693, upload-time = "2025-01-22T15:41:29.403Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/cc/28/c14e053b6762b1044f34a13aab6859bbf40456d37d23aa286ac24cfd9a5d/executing-2.2.1.tar.gz", hash = "sha256:3632cc370565f6648cc328b32435bd120a1e4ebb20c77e3fdde9a13cd1e533c4", size = 1129488, upload-time = "2025-09-01T09:48:10.866Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7b/8f/c4d9bafc34ad7ad5d8dc16dd1347ee0e507a52c3adb6bfa8887e1c6a26ba/executing-2.2.0-py2.py3-none-any.whl", hash = "sha256:11387150cad388d62750327a53d3339fad4888b39a6fe233c3afbb54ecffd3aa", size = 26702, upload-time = "2025-01-22T15:41:25.929Z" },
+    { url = "https://files.pythonhosted.org/packages/c1/ea/53f2148663b321f21b5a606bd5f191517cf40b7072c0497d3c92c4a13b1e/executing-2.2.1-py2.py3-none-any.whl", hash = "sha256:760643d3452b4d777d295bb167ccc74c64a81df23fb5e08eff250c425a4b2017", size = 28317, upload-time = "2025-09-01T09:48:08.5Z" },
 ]
 
 [[package]]
@@ -125,10 +125,11 @@ wheels = [
 
 [[package]]
 name = "fsspec"
-version = "2025.7.0"
-source = { registry = "https://download.pytorch.org/whl/nightly/cpu" }
+version = "2025.9.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/de/e0/bab50af11c2d75c9c4a2a26a5254573c0bd97cea152254401510950486fa/fsspec-2025.9.0.tar.gz", hash = "sha256:19fd429483d25d28b65ec68f9f4adc16c17ea2c7c7bf54ec61360d478fb19c19", size = 304847, upload-time = "2025-09-02T19:10:49.215Z" }
 wheels = [
-    { url = "https://download.pytorch.org/whl/nightly/fsspec-2025.7.0-py3-none-any.whl" },
+    { url = "https://files.pythonhosted.org/packages/47/71/70db47e4f6ce3e5c37a607355f80da8860a33226be640226ac52cb05ef2e/fsspec-2025.9.0-py3-none-any.whl", hash = "sha256:530dc2a2af60a414a832059574df4a6e10cce927f6f4a78209390fe38955cfb7", size = 199289, upload-time = "2025-09-02T19:10:47.708Z" },
 ]
 
 [[package]]
@@ -147,7 +148,7 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "decorator" },
     { name = "ipython", version = "8.37.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "ipython", version = "9.4.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "ipython", version = "9.5.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "tomli", marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/3d/1b/7e07e7b752017f7693a0f4d41c13e5ca29ce8cbcfdcc1fd6c4ad8c0a27a0/ipdb-0.13.13.tar.gz", hash = "sha256:e3ac6018ef05126d442af680aad863006ec19d02290561ac88b8b1c0b0cfc726", size = 17042, upload-time = "2023-03-09T15:40:57.487Z" }
@@ -183,7 +184,7 @@ wheels = [
 
 [[package]]
 name = "ipython"
-version = "9.4.0"
+version = "9.5.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.12' and sys_platform != 'darwin'",
@@ -204,9 +205,9 @@ dependencies = [
     { name = "traitlets", marker = "python_full_version >= '3.11'" },
     { name = "typing-extensions", marker = "python_full_version == '3.11.*'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/54/80/406f9e3bde1c1fd9bf5a0be9d090f8ae623e401b7670d8f6fdf2ab679891/ipython-9.4.0.tar.gz", hash = "sha256:c033c6d4e7914c3d9768aabe76bbe87ba1dc66a92a05db6bfa1125d81f2ee270", size = 4385338, upload-time = "2025-07-01T11:11:30.606Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/6e/71/a86262bf5a68bf211bcc71fe302af7e05f18a2852fdc610a854d20d085e6/ipython-9.5.0.tar.gz", hash = "sha256:129c44b941fe6d9b82d36fc7a7c18127ddb1d6f02f78f867f402e2e3adde3113", size = 4389137, upload-time = "2025-08-29T12:15:21.519Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/63/f8/0031ee2b906a15a33d6bfc12dd09c3dfa966b3cb5b284ecfb7549e6ac3c4/ipython-9.4.0-py3-none-any.whl", hash = "sha256:25850f025a446d9b359e8d296ba175a36aedd32e83ca9b5060430fe16801f066", size = 611021, upload-time = "2025-07-01T11:11:27.85Z" },
+    { url = "https://files.pythonhosted.org/packages/08/2a/5628a99d04acb2d2f2e749cdf4ea571d2575e898df0528a090948018b726/ipython-9.5.0-py3-none-any.whl", hash = "sha256:88369ffa1d5817d609120daa523a6da06d02518e582347c29f8451732a9c5e72", size = 612426, upload-time = "2025-08-29T12:15:18.866Z" },
 ]
 
 [[package]]
@@ -469,7 +470,7 @@ wheels = [
 
 [[package]]
 name = "pytest"
-version = "8.4.1"
+version = "8.4.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorama", marker = "sys_platform == 'win32'" },
@@ -480,9 +481,9 @@ dependencies = [
     { name = "pygments" },
     { name = "tomli", marker = "python_full_version < '3.11'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/08/ba/45911d754e8eba3d5a841a5ce61a65a685ff1798421ac054f85aa8747dfb/pytest-8.4.1.tar.gz", hash = "sha256:7c67fd69174877359ed9371ec3af8a3d2b04741818c51e5e99cc1742251fa93c", size = 1517714, upload-time = "2025-06-18T05:48:06.109Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a3/5c/00a0e072241553e1a7496d638deababa67c5058571567b92a7eaa258397c/pytest-8.4.2.tar.gz", hash = "sha256:86c0d0b93306b961d58d62a4db4879f27fe25513d4b969df351abdddb3c30e01", size = 1519618, upload-time = "2025-09-04T14:34:22.711Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/29/16/c8a903f4c4dffe7a12843191437d7cd8e32751d5de349d45d3fe69544e87/pytest-8.4.1-py3-none-any.whl", hash = "sha256:539c70ba6fcead8e78eebbf1115e8b589e7565830d7d006a8723f19ac8a0afb7", size = 365474, upload-time = "2025-06-18T05:48:03.955Z" },
+    { url = "https://files.pythonhosted.org/packages/a8/a4/20da314d277121d6534b3a980b29035dcd51e6744bd79075a6ce8fa4eb8d/pytest-8.4.2-py3-none-any.whl", hash = "sha256:872f880de3fc3a5bdc88a11b39c9710c3497a547cfa9320bc3c5e62fbf272e79", size = 365750, upload-time = "2025-09-04T14:34:20.226Z" },
 ]
 
 [[package]]
@@ -573,7 +574,7 @@ wheels = [
 
 [[package]]
 name = "torch"
-version = "2.9.0.dev20250828"
+version = "2.9.0.dev20250907"
 source = { registry = "https://download.pytorch.org/whl/nightly/cpu" }
 resolution-markers = [
     "python_full_version >= '3.12' and sys_platform == 'darwin'",
@@ -591,18 +592,18 @@ dependencies = [
     { name = "typing-extensions", marker = "sys_platform == 'darwin'" },
 ]
 wheels = [
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828-cp310-none-macosx_11_0_arm64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828-cp311-none-macosx_11_0_arm64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828-cp312-none-macosx_11_0_arm64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828-cp313-cp313t-macosx_14_0_arm64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828-cp313-none-macosx_11_0_arm64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828-cp314-cp314-macosx_14_0_arm64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828-cp314-cp314t-macosx_14_0_arm64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907-cp310-none-macosx_11_0_arm64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907-cp311-none-macosx_11_0_arm64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907-cp312-none-macosx_11_0_arm64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907-cp313-cp313t-macosx_11_0_arm64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907-cp313-none-macosx_11_0_arm64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907-cp314-cp314-macosx_11_0_arm64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907-cp314-cp314t-macosx_11_0_arm64.whl" },
 ]
 
 [[package]]
 name = "torch"
-version = "2.9.0.dev20250828+cpu"
+version = "2.9.0.dev20250907+cpu"
 source = { registry = "https://download.pytorch.org/whl/nightly/cpu" }
 resolution-markers = [
     "python_full_version >= '3.12' and sys_platform != 'darwin'",
@@ -620,34 +621,37 @@ dependencies = [
     { name = "typing-extensions", marker = "sys_platform != 'darwin'" },
 ]
 wheels = [
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828%2Bcpu-cp310-cp310-linux_s390x.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828%2Bcpu-cp310-cp310-manylinux_2_28_aarch64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828%2Bcpu-cp310-cp310-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828%2Bcpu-cp310-cp310-win_amd64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828%2Bcpu-cp311-cp311-linux_s390x.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828%2Bcpu-cp311-cp311-manylinux_2_28_aarch64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828%2Bcpu-cp311-cp311-win_amd64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828%2Bcpu-cp311-cp311-win_arm64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828%2Bcpu-cp312-cp312-linux_s390x.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828%2Bcpu-cp312-cp312-manylinux_2_28_aarch64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828%2Bcpu-cp312-cp312-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828%2Bcpu-cp312-cp312-win_amd64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828%2Bcpu-cp312-cp312-win_arm64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828%2Bcpu-cp313-cp313-linux_s390x.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828%2Bcpu-cp313-cp313-manylinux_2_28_aarch64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828%2Bcpu-cp313-cp313-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828%2Bcpu-cp313-cp313-win_amd64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828%2Bcpu-cp313-cp313-win_arm64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828%2Bcpu-cp313-cp313t-manylinux_2_28_aarch64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828%2Bcpu-cp313-cp313t-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828%2Bcpu-cp313-cp313t-win_amd64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828%2Bcpu-cp314-cp314-manylinux_2_28_aarch64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828%2Bcpu-cp314-cp314-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828%2Bcpu-cp314-cp314-win_amd64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828%2Bcpu-cp314-cp314t-manylinux_2_28_aarch64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828%2Bcpu-cp314-cp314t-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250828%2Bcpu-cp314-cp314t-win_amd64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907%2Bcpu-cp310-cp310-linux_s390x.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907%2Bcpu-cp310-cp310-manylinux_2_28_aarch64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907%2Bcpu-cp310-cp310-manylinux_2_28_x86_64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907%2Bcpu-cp310-cp310-win_amd64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907%2Bcpu-cp311-cp311-linux_s390x.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907%2Bcpu-cp311-cp311-manylinux_2_28_aarch64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907%2Bcpu-cp311-cp311-win_amd64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907%2Bcpu-cp311-cp311-win_arm64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907%2Bcpu-cp312-cp312-linux_s390x.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907%2Bcpu-cp312-cp312-manylinux_2_28_aarch64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907%2Bcpu-cp312-cp312-manylinux_2_28_x86_64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907%2Bcpu-cp312-cp312-win_amd64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907%2Bcpu-cp312-cp312-win_arm64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907%2Bcpu-cp313-cp313-linux_s390x.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907%2Bcpu-cp313-cp313-manylinux_2_28_aarch64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907%2Bcpu-cp313-cp313-manylinux_2_28_x86_64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907%2Bcpu-cp313-cp313-win_amd64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907%2Bcpu-cp313-cp313-win_arm64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907%2Bcpu-cp313-cp313t-linux_s390x.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907%2Bcpu-cp313-cp313t-manylinux_2_28_aarch64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907%2Bcpu-cp313-cp313t-manylinux_2_28_x86_64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907%2Bcpu-cp313-cp313t-win_amd64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907%2Bcpu-cp314-cp314-linux_s390x.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907%2Bcpu-cp314-cp314-manylinux_2_28_aarch64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907%2Bcpu-cp314-cp314-manylinux_2_28_x86_64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907%2Bcpu-cp314-cp314-win_amd64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907%2Bcpu-cp314-cp314t-linux_s390x.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907%2Bcpu-cp314-cp314t-manylinux_2_28_aarch64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907%2Bcpu-cp314-cp314t-manylinux_2_28_x86_64.whl" },
+    { url = "https://download.pytorch.org/whl/nightly/cpu/torch-2.9.0.dev20250907%2Bcpu-cp314-cp314t-win_amd64.whl" },
 ]
 
 [[package]]

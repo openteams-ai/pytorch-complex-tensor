@@ -4,7 +4,8 @@ from typing import Any
 import torch
 from torch._ops import OpOverloadPacket
 from torch._refs import is_complex
-from torch.utils._pytree import tree_flatten, tree_unflatten
+from torch.utils._python_dispatch import TorchDispatchMode
+from torch.utils._pytree import tree_flatten, tree_map, tree_unflatten
 
 from ..complex_tensor import ComplexTensor
 
@@ -63,6 +64,11 @@ def register_complex(
     """Decorator to register an implementation for some ops in some dispatch tables"""
 
     def inner(func):
+        if COMPLEX_OPS_TABLE.get(op, func) is not func:
+            raise RuntimeError(
+                "Attempted to register multiple functions for "
+                f"{op._qualified_op_name.replace('::', '.')}"
+            )
         COMPLEX_OPS_TABLE[op] = func
         return func
 
@@ -131,7 +137,7 @@ ERROR_TYPES: dict[OpType, type[Exception]] = {}
 
 def register_binary_nonlinear(op: OpType) -> Callable:
     def impl(lhs: ComplexTensor, rhs: ComplexTensor, *args, **kwargs) -> ComplexTensor:
-        a_r, a_i = split_complex_tensor(lhs)
+        a_r, a_i = split_complex_arg(lhs)
         b_r, b_i = split_complex_arg(rhs)
         out_dt, (a_r, a_i, b_r, b_i) = promote_real_cpu_tensors(a_r, a_i, b_r, b_i)
         real = op(a_r, b_r, *args, **kwargs) - op(a_i, b_i, *args, **kwargs)
@@ -146,10 +152,19 @@ def register_binary_nonlinear(op: OpType) -> Callable:
 
 
 def register_simple(op: OpType):
-    def impl(self: ComplexTensor, *args, **kwargs) -> ComplexTensor:
+    def impl(
+        self: ComplexTensor, *args, dtype: torch.dtype | None = None, **kwargs
+    ) -> ComplexTensor:
         x, y = split_complex_tensor(self)
+        if dtype is not None and dtype not in COMPLEX_TO_REAL:
+            raise RuntimeError("Non-complex `dtype` specified, please write custom impl.")
+
+        if dtype in COMPLEX_TO_REAL:
+            kwargs["dtype"] = COMPLEX_TO_REAL[dtype]
+
         u = op(x, *args, **kwargs)
         v = op(y, *args, **kwargs)
+
         u_flat, u_spec = tree_flatten(u)
         v_flat, v_spec = tree_flatten(v)
         assert u_spec == v_spec
@@ -161,3 +176,37 @@ def register_simple(op: OpType):
     impl.__qualname__ = func_name
 
     return register_complex(op, impl)
+
+
+def _as_complex_tensor(arg: torch.Tensor | Any) -> torch.Tensor | ComplexTensor | Any:
+    if (
+        not isinstance(arg, ComplexTensor)
+        and isinstance(arg, torch.Tensor)
+        and arg.dtype in COMPLEX_TO_REAL
+    ):
+        return ComplexTensor.from_interleaved(arg)
+    return arg
+
+
+def _as_interleaved(arg: ComplexTensor | Any) -> torch.Tensor | Any:
+    if isinstance(arg, ComplexTensor):
+        return arg.as_interleaved()
+    return arg
+
+
+class ComplexDispatchMode(TorchDispatchMode):
+    def __init__(self, _dispatch_key=None, *, _compile=False):
+        super().__init__(_dispatch_key)
+        self._compile = _compile
+
+    def __torch_dispatch__(self, func, types, args=(), kwargs=None):
+        if kwargs is None:
+            kwargs = {}
+
+        if compile:
+            func = torch.compile(func)
+
+        args = tree_map(_as_complex_tensor, args)
+        kwargs = tree_map(_as_complex_tensor, kwargs)
+
+        return tree_map(_as_interleaved, func(*args, **kwargs))

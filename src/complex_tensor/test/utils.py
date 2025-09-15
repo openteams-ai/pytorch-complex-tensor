@@ -8,9 +8,9 @@ import torch
 from torch.testing._internal.common_utils import TestCase as PytorchTestCase
 from torch.utils._pytree import tree_flatten
 
-from complex_tensor.complex_tensor import ComplexTensor
+from complex_tensor.ops._common import COMPLEX_TO_REAL, _as_interleaved
 
-COMPLEX_DTYPES = {torch.complex128, torch.complex64, torch.complex32}
+COMPLEX_DTYPES = set(COMPLEX_TO_REAL)
 
 
 @dataclass(frozen=True)
@@ -19,6 +19,7 @@ class TestDescriptor:
     device: str | None = field(default=None)
     dtype: torch.dtype | None = field(default=None)
     compile: bool | None = field(default=None)
+    gradcheck: bool | None = field(default=None)
 
     def matches(self, other: TestDescriptor) -> bool:
         fields1 = fields(self)
@@ -35,51 +36,43 @@ class TestDescriptor:
         return True
 
 
-def _as_complex_tensor(arg):
-    if (
-        not isinstance(arg, ComplexTensor)
-        and isinstance(arg, torch.Tensor)
-        and arg.dtype in COMPLEX_DTYPES
-    ):
-        return ComplexTensor.from_interleaved(arg)
-    return arg
-
-
 class TestCase(PytorchTestCase):
     def assertSameResult(
         self,
-        f1: Callable[[], Any],
-        f2: Callable[[], Any],
+        expected: Callable[[], Any],
+        actual: Callable[[], Any],
         ignore_exc_types: bool = False,
         *args,
         **kwargs,
     ) -> None:
         try:
-            result_1 = f1()
-            exception_1 = None
+            result_e = expected()
+            exception_e = None
         except Exception as e:  # noqa: BLE001
-            result_1 = None
-            exception_1 = e
+            result_e = None
+            exception_e = e
 
         try:
-            result_2 = f2()
-            exception_2 = None
+            result_a = actual()
+            exception_a = None
         except Exception as e:  # noqa: BLE001
-            result_2 = None
-            exception_2 = e
+            result_a = None
+            exception_a = e
         # Special case: compiled versions don't match the error type exactly.
-        if ((exception_1 is None) != (exception_2 is None)) or not ignore_exc_types:
-            self.assertIs(type(exception_1), type(exception_2), f"\n{exception_1=}\n{exception_2=}")
+        if ((exception_e is None) != (exception_a is None)) or not ignore_exc_types:
+            if exception_a is not None and exception_e is None:
+                raise exception_a
+            self.assertIs(type(exception_e), type(exception_a), f"\n{exception_e=}\n{exception_a=}")
 
-        if exception_1 is None:
-            flattened_1, spec_1 = tree_flatten(result_1)
-            flattened_2, spec_2 = tree_flatten(result_2)
+        if exception_e is None:
+            flattened_e, spec_e = tree_flatten(result_e)
+            flattened_a, spec_a = tree_flatten(result_a)
 
             self.assertEqual(
-                spec_1, spec_2, "Both functions must return a result with the same tree structure."
+                spec_e, spec_a, "Both functions must return a result with the same tree structure."
             )
-            for f1, f2 in zip(flattened_1, flattened_2, strict=False):
-                f1 = _as_complex_tensor(f1)
-                f2 = _as_complex_tensor(f1)
+            for value_e, value_a in zip(flattened_e, flattened_a, strict=True):
+                value_e = _as_interleaved(value_e)
+                value_a = _as_interleaved(value_a)
 
-                self.assertEqual(f1, f2, *args, **kwargs)
+                self.assertEqual(value_e, value_a, *args, **kwargs)
