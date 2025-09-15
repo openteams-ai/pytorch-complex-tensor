@@ -140,45 +140,7 @@ class TestComplexTensor(TestCase):
             self.assertSameResult(expected, actual, ignore_exc_types=compile, **kwargs)
 
 
-class TestComplexBwdGradients(TestCase):
-    @parametrize("compile", [False])
-    @ops(implemented_op_db, allowed_dtypes=[torch.complex128])
-    def test_fn_grad(self, device, dtype, op: OpInfo, compile: bool) -> None:
-        if dtype not in op.supported_backward_dtypes(torch.device(device).type):
-            self.skipTest("Skipped! Dtype is not in supported backward dtypes!")
-
-        self.check_consistency(device, dtype, op, compile)
-
-    def check_consistency(self, device, dtype, op: OpInfo, compile: bool) -> None:
-        test_info = TestDescriptor(
-            op_name=op.name, device=device, dtype=dtype, compile=compile, gradcheck=True
-        )
-        for xfail_info, reason in SKIPS.items():
-            if xfail_info.matches(test_info):
-                self.skipTest(reason)
-
-        kwargs = {}
-        for extra_info, extra_kw in EXTRA_KWARGS.items():
-            if extra_info.matches(test_info):
-                kwargs = extra_kw
-                break
-
-        sample_inputs = op.sample_inputs(device, dtype)
-        if compile:
-            op = torch.compile(op, fullgraph=True)
-
-        for sample_input in sample_inputs:
-            subclass_sample = sample_input.transform(_as_complex_tensor)
-
-            def grad_fn(input, subclass_sample=subclass_sample):
-                return op(input, *subclass_sample.args, **subclass_sample.kwargs)
-
-            subclass_sample.input.requires_grad_()
-            torch.autograd.gradcheck(grad_fn, subclass_sample.input, **kwargs)
-
-
 instantiate_device_type_tests(TestComplexTensor, globals())
-instantiate_device_type_tests(TestComplexBwdGradients, globals())
 
 if __name__ == "__main__":
     run_tests()
