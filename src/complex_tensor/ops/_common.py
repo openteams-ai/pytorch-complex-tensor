@@ -20,6 +20,8 @@ COMPLEX_TO_REAL = {
     torch.complex32: torch.float16,
 }
 
+REAL_TO_COMPLEX = {v: k for k, v in COMPLEX_TO_REAL.items()}
+
 PROMOTE_TYPES_CPU = {
     torch.float16: torch.float32,
     torch.bfloat16: torch.float32,

@@ -62,21 +62,15 @@ if len(non_tested_ops) != 0:
 
 
 SKIPS = {
-    TestDescriptor(op_name="real"): "`aten.real` does not hit `__torch_dispatch__`",
-    TestDescriptor(op_name="imag"): "`aten.imag` does not hit `__torch_dispatch__`",
-    TestDescriptor(op_name="conj"): "`prims.conj` does not hit `__torch_dispatch__`",
-    TestDescriptor(
-        op_name="conj_physical"
-    ): "`prims.conj_physical` does not hit `__torch_dispatch__`",
     TestDescriptor(op_name="empty_like"): "Inconsistent output",
+    # This passes with `PYTORCH_OPINFO_SAMPLE_INPUT_INDEX=35 ...
+    # but when the whole test is run, it fails with this exact
+    # sample.
     TestDescriptor(op_name="repeat", compile=True): "Heisenbug",
     TestDescriptor(
         op_name="allclose", compile=True
     ): "`aten.allclose` requires data-dependent control-flow",
     TestDescriptor(op_name="randn_like"): "Inconsistent output",
-    TestDescriptor(
-        op_name="var", compile=True
-    ): "`aten.var` doesn't return valid results with `torch.compile`",
 }
 
 EXTRA_KWARGS = {

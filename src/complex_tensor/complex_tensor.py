@@ -12,6 +12,8 @@ class ComplexTensor(torch.Tensor):
     im: torch.Tensor
 
     def __new__(cls, real: torch.Tensor, imag: torch.Tensor) -> Self:
+        from complex_tensor.ops._common import REAL_TO_COMPLEX
+
         shape = real.shape
         device = real.device
 
@@ -20,7 +22,7 @@ class ComplexTensor(torch.Tensor):
         real = real.contiguous()
         imag = imag.contiguous()
 
-        # TODO (ajames):
+        # TODO (hameerabbasi):
         # What should we do with dtype?
         # We could convert to the complex type (float32 -> complex64), but we
         # can't use that model for say `bfloat16` which does not have a
@@ -33,9 +35,14 @@ class ComplexTensor(torch.Tensor):
         # 2) We use the real float dtype here, and it is up to the user to know
         #    that dtype=float<size> here really means complex<2xSize> with dtype
         #    matching that of re/im parts alone
-        # I'm going with 2 for now, so that I can test impl details with complex
-        # bfloat, but might want to discuss this in the RFP
-        dtype = real.dtype
+        # I'm going with 1 for now, so that I can make gradcheck and some complex
+        # ops work properly, but might want to discuss this in the RFP.
+        dtype = REAL_TO_COMPLEX.get(real.dtype)
+        if dtype is None:
+            raise TypeError(
+                "Unsupported dtype for constituent tensors. Supported dtypes are: "
+                f"{set(REAL_TO_COMPLEX.keys())!r}."
+            )
         storage_offset = real.storage_offset()
         strides = real.stride()
         layout = real.layout
@@ -44,7 +51,7 @@ class ComplexTensor(torch.Tensor):
 
         assert shape == imag.shape, f"Expected imag shape {shape}, got {imag.shape}"
         assert device == imag.device, f"Expected imag device {device}, got {imag.device}"
-        assert dtype == imag.dtype, f"Expected imag dtype {dtype}, got {imag.dtype}"
+        assert real.dtype == imag.dtype, f"Expected imag dtype {real.dtype}, got {imag.dtype}"
         assert layout == imag.layout, f"Expected imag layout {layout}, got {imag.layout}"
         assert pin_memory == imag.is_pinned(), (
             f"Expected imag pinning {pin_memory}, got {imag.is_pinned()}"
