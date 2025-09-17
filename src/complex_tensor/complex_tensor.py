@@ -75,14 +75,6 @@ class ComplexTensor(torch.Tensor):
 
         return res
 
-    @property
-    def real(self) -> torch.Tensor:
-        return self.re
-
-    @property
-    def imag(self) -> torch.Tensor:
-        return self.im
-
     @classmethod
     def __torch_dispatch__(
         cls, func, types: tuple[type], args: tuple = (), kwargs: dict | None = None
@@ -123,7 +115,7 @@ class ComplexTensor(torch.Tensor):
         return ["re", "im"], None
 
     def __repr__(self) -> str:
-        return f"ComplexTensor(real={self.re}, imag={self.im})"
+        return f"ComplexTensor(real={self.re!r}, imag={self.im!r})"
 
     def is_pinned(self, device: torch.device | None = None) -> bool:
         return self.re.is_pinned(device)
