@@ -712,8 +712,8 @@ def _local_scalar_dense_impl(self: ComplexTensor, *args, **kwargs) -> complex:
 def allclose_impl(
     input: torch.Tensor,
     other: torch.Tensor,
-    rtol: float = 1e-05,
-    atol: float = 1e-08,
+    rtol: float = 1e-5,
+    atol: float = 1e-8,
     equal_nan: bool = False,
 ) -> complex:
     return torch.all(torch.isclose(input, other, rtol=rtol, atol=atol, equal_nan=equal_nan)).item()
