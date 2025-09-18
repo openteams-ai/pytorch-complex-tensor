@@ -737,8 +737,9 @@ def _conj_physical_impl(self: ComplexTensor) -> ComplexTensor:
 # TODO (hameerabbasi): Not being tested
 @register_complex(aten._conj)
 def _conj_impl(self: ComplexTensor) -> ComplexTensor:
-    re, im = split_complex_tensor(self)
-    return ComplexTensor(re, aten._neg_view(im))
+    v = aten.view(self, self.shape)
+    torch._C._set_conj(v, not self.is_conj())
+    return v
 
 
 @register_complex(aten.index_add)

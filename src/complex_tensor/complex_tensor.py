@@ -8,8 +8,8 @@ from typing_extensions import Self
 
 
 class ComplexTensor(torch.Tensor):
-    re: torch.Tensor
-    im: torch.Tensor
+    _re: torch.Tensor
+    _im: torch.Tensor
 
     def __new__(cls, real: torch.Tensor, imag: torch.Tensor) -> Self:
         from complex_tensor.ops._common import REAL_TO_COMPLEX
@@ -70,18 +70,21 @@ class ComplexTensor(torch.Tensor):
             layout=layout,
             requires_grad=False,
         )
-        res.re = real
-        res.im = imag
+        res._re = real
+        res._im = imag
 
         return res
 
     @property
-    def real(self) -> torch.Tensor:
-        return self.re
+    def re(self) -> torch.Tensor:
+        return self._re
 
     @property
-    def imag(self) -> torch.Tensor:
-        return self.im
+    def im(self) -> torch.Tensor:
+        if self.is_conj():
+            return torch.ops.aten._neg_view(self._im)
+
+        return self._im
 
     @classmethod
     def __torch_dispatch__(
