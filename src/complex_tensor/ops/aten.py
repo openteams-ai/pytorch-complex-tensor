@@ -101,7 +101,6 @@ SIMPLE_FORCE_TESTED_OPS = [
     aten.alias,
     aten.lift_fresh,
     aten._unsafe_view,
-    aten.index_put_,
     aten.index,
     aten._neg_view,
     aten.avg_pool2d,
@@ -123,6 +122,7 @@ del simple_op
 
 # some binary ops which we can stamp out
 mul_impl = register_binary_nonlinear(aten.mul)
+mul__impl = register_binary_nonlinear(aten.mul_)
 mm_impl = register_binary_nonlinear(aten.mm)
 dot_impl = register_binary_nonlinear(aten.dot)
 bmm_impl = register_binary_nonlinear(aten.bmm)
@@ -140,8 +140,11 @@ select_scatter_impl = register_force_test(
 )
 
 add_impl = register_binary_linear(aten.add)
+add__impl = register_binary_linear(aten.add_)
 sub_impl = register_binary_linear(aten.sub)
+sub__impl = register_binary_linear(aten.sub_)
 diagonal_scatter_impl = register_binary_linear(aten.diagonal_scatter)
+fill__impl = register_binary_linear(aten.fill_)
 
 
 @register_complex(aten.div)
@@ -498,6 +501,7 @@ def masked_scatter_impl(
 
 
 @register_complex(aten.index_put)
+@register_complex(aten.index_put_)
 def index_put_impl(
     self: ComplexTensor,
     indices: tuple[torch.Tensor, ...],
@@ -506,10 +510,10 @@ def index_put_impl(
 ) -> ComplexTensor:
     self_r, self_i = split_complex_tensor(self)
     values_r, values_i = split_complex_arg(values)
-    ret_r = torch.index_put(self_r, indices, values_r, accumulate=accumulate)
-    ret_i = torch.index_put(self_i, indices, values_i, accumulate=accumulate)
+    torch.index_put(self_r, indices, values_r, accumulate=accumulate)
+    torch.index_put(self_i, indices, values_i, accumulate=accumulate)
 
-    return ComplexTensor(ret_r, ret_i)
+    return self
 
 
 @register_complex(aten.where)
@@ -817,3 +821,25 @@ def constant_pad_nd_impl(self: ComplexTensor, pad, value: complex | None = None)
 def var_impl(self: ComplexTensor, *args, **kwargs) -> torch.Tensor:
     self_re, self_im = split_complex_tensor(self)
     return torch.var(self_re, *args, **kwargs) + torch.var(self_im, *args, **kwargs)
+
+
+@register_complex(aten.scatter_add)
+def scatter_add_impl(self: ComplexTensor, dim, index, src: ComplexTensor) -> ComplexTensor:
+    self_re, self_im = split_complex_arg(self)
+    src_re, src_im = split_complex_arg(src)
+
+    ret_re = torch.scatter_add(self_re, dim, index, src_re)
+    ret_im = torch.scatter_add(self_im, dim, index, src_im)
+
+    return ComplexTensor(ret_re, ret_im)
+
+
+@register_complex(aten.scatter_add_)
+def scatter_add__impl(self: ComplexTensor, dim, index, src: ComplexTensor) -> ComplexTensor:
+    self_re, self_im = split_complex_arg(self)
+    src_re, src_im = split_complex_arg(src)
+
+    self_re.scatter_add_(dim, index, src_re)
+    self_im.scatter_add_(dim, index, src_im)
+
+    return self

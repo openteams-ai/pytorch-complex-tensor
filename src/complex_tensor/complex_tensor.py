@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 import torch
+from torch._ops import OpOverload
 
 from typing_extensions import Self
 
@@ -88,15 +89,15 @@ class ComplexTensor(torch.Tensor):
 
     @classmethod
     def __torch_dispatch__(
-        cls, func, types: tuple[type], args: tuple = (), kwargs: dict | None = None
+        cls, func: OpOverload, types: tuple[type], args: tuple = (), kwargs: dict | None = None
     ):
         from .ops import lookup_complex
 
         kwargs = {} if kwargs is None else kwargs
 
-        fn = lookup_complex(func, *args, **kwargs)
-        if fn is not None:
-            return fn(*args, **kwargs)
+        impl = lookup_complex(func, *args, **kwargs)
+        if impl is not None:
+            return impl(*args, **kwargs)
 
         return NotImplemented
 
@@ -126,7 +127,7 @@ class ComplexTensor(torch.Tensor):
         return ["re", "im"], None
 
     def __repr__(self) -> str:
-        return f"ComplexTensor(real={self.re}, imag={self.im})"
+        return f"ComplexTensor(real={self.re!r}, imag={self.im!r})"
 
     def is_pinned(self, device: torch.device | None = None) -> bool:
         return self.re.is_pinned(device)
