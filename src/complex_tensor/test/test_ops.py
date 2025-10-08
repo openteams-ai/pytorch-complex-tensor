@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import torch
 from torch._ops import OpOverload
-from torch.testing._internal.common_device_type import instantiate_device_type_tests, ops
+from torch.testing._internal.common_device_type import OpDTypes, instantiate_device_type_tests, ops
 from torch.testing._internal.common_methods_invocations import op_db
 from torch.testing._internal.common_utils import (
     TestGradients,
@@ -95,12 +95,12 @@ class TestComplexTensor(TestCase):
     _default_dtype_check_enabled = True
 
     @parametrize("compile", [False, True])
-    @ops(implemented_op_db, allowed_dtypes=list(COMPLEX_DTYPES))
+    @ops(implemented_op_db, dtypes=OpDTypes.supported, allowed_dtypes=list(COMPLEX_DTYPES))
     def test_consistency(self, device, dtype, op: OpInfo, compile: bool):
         self.check_consistency(device, dtype, op, compile)
 
     @parametrize("compile", [False, True])
-    @ops(force_test_op_db, dtypes=list(COMPLEX_DTYPES))
+    @ops(force_test_op_db, allowed_dtypes=list(COMPLEX_DTYPES))
     def test_maybe_error(self, device, dtype, op: OpInfo, compile: bool):
         self.check_consistency(device, dtype, op, compile)
 
@@ -138,7 +138,7 @@ class TestComplexTensor(TestCase):
 
 @unMarkDynamoStrictTest
 class TestComplexBwdGradients(TestGradients):
-    @ops(implemented_op_db, allowed_dtypes=[torch.complex128])
+    @ops(implemented_op_db, dtypes=OpDTypes.supported_backward, allowed_dtypes=[torch.complex128])
     def test_fn_grad(self, device: torch.device, dtype: torch.dtype, op: OpInfo) -> None:
         test_info = TestDescriptor(
             op_name=op.name, device=device, dtype=dtype, compile=False, gradcheck=True
@@ -150,7 +150,7 @@ class TestComplexBwdGradients(TestGradients):
         if dtype not in op.supported_backward_dtypes(torch.device(device).type):
             self.skipTest(f"Skipped! {dtype=} is not in supported backward dtypes!")
 
-        with ComplexDispatchMode():
+        with ComplexDispatchMode(_debug=True):
             op.gradcheck_fast_mode = False
             self._grad_test_helper(device, dtype, op, op.get_op())
 

@@ -500,22 +500,6 @@ def masked_scatter_impl(
     return ComplexTensor(ret_r, ret_i)
 
 
-@register_complex(aten.index_put)
-@register_complex(aten.index_put_)
-def index_put_impl(
-    self: ComplexTensor,
-    indices: tuple[torch.Tensor, ...],
-    values: ComplexTensor,
-    accumulate: bool = False,
-) -> ComplexTensor:
-    self_r, self_i = split_complex_tensor(self)
-    values_r, values_i = split_complex_arg(values)
-    torch.index_put(self_r, indices, values_r, accumulate=accumulate)
-    torch.index_put(self_i, indices, values_i, accumulate=accumulate)
-
-    return self
-
-
 @register_complex(aten.where)
 def where_impl(mask: torch.Tensor, x: ComplexTensor, y: ComplexTensor) -> ComplexTensor:
     x_r, x_i = split_complex_arg(x)
@@ -719,7 +703,7 @@ def allclose_impl(
     rtol: float = 1e-05,
     atol: float = 1e-08,
     equal_nan: bool = False,
-) -> complex:
+) -> bool:
     return torch.all(torch.isclose(input, other, rtol=rtol, atol=atol, equal_nan=equal_nan)).item()
 
 
@@ -741,9 +725,8 @@ def _conj_physical_impl(self: ComplexTensor) -> ComplexTensor:
 # TODO (hameerabbasi): Not being tested
 @register_complex(aten._conj)
 def _conj_impl(self: ComplexTensor) -> ComplexTensor:
-    v = aten.view(self, self.shape)
-    torch._C._set_conj(v, not self.is_conj())
-    return v
+    re, im = split_complex_tensor(self)
+    return ComplexTensor(re, torch._neg_view(im))
 
 
 @register_complex(aten.index_add)
@@ -839,7 +822,23 @@ def scatter_add__impl(self: ComplexTensor, dim, index, src: ComplexTensor) -> Co
     self_re, self_im = split_complex_arg(self)
     src_re, src_im = split_complex_arg(src)
 
-    self_re.scatter_add_(dim, index, src_re)
-    self_im.scatter_add_(dim, index, src_im)
+    out_re = self_re.scatter_add_(dim, index, src_re)
+    out_im = self_im.scatter_add_(dim, index, src_im)
 
-    return self
+    return ComplexTensor(out_re, out_im)
+
+
+@register_complex(aten.index_put_)
+def index_put__impl(
+    self: ComplexTensor,
+    indices: tuple[torch.Tensor, ...],
+    values: ComplexTensor,
+    accumulate: bool = False,
+) -> ComplexTensor:
+    self_re, self_im = split_complex_arg(self)
+    values_re, values_im = split_complex_arg(values)
+
+    out_re = self_re.index_put_(indices, values_re, accumulate=accumulate)
+    out_im = self_im.index_put_(indices, values_im, accumulate=accumulate)
+
+    return ComplexTensor(out_re, out_im)

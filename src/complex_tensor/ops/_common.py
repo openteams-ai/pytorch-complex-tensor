@@ -1,11 +1,15 @@
 from collections.abc import Callable
+from contextvars import ContextVar
 from typing import Any
 
 import torch
+from torch._decomp import get_decompositions
 from torch._ops import OpOverloadPacket
 from torch._refs import is_complex
 from torch.utils._python_dispatch import TorchDispatchMode
 from torch.utils._pytree import tree_flatten, tree_map, tree_unflatten
+
+from typing_extensions import Self
 
 from ..complex_tensor import ComplexTensor
 
@@ -87,8 +91,20 @@ def register_force_test(op: OpType, *args, **kwargs):
     return register_complex(op, *args, **kwargs)
 
 
-def lookup_complex(func, *args, **kwargs):
-    return COMPLEX_OPS_TABLE.get(func, COMPLEX_OPS_TABLE.get(func.overloadpacket, None))
+DECOMPOSITIONS = get_decompositions(list(torch.ops.aten))
+DEBUG_SET: ContextVar[set[OpType] | None] = ContextVar("DEBUG_SET", default=None)
+
+
+def lookup_complex(func: OpType, *args, **kwargs) -> Callable:
+    debug_set = DEBUG_SET.get()
+    if debug_set is not None:
+        debug_set.add(func)
+    return COMPLEX_OPS_TABLE.get(
+        func,
+        COMPLEX_OPS_TABLE.get(
+            func.overloadpacket, DECOMPOSITIONS.get(func, DECOMPOSITIONS.get(func.overloadpacket))
+        ),
+    )
 
 
 def split_complex_arg(
@@ -197,9 +213,10 @@ def _as_interleaved(arg: ComplexTensor | Any) -> torch.Tensor | Any:
 
 
 class ComplexDispatchMode(TorchDispatchMode):
-    def __init__(self, _dispatch_key=None, *, _compile: bool = False):
+    def __init__(self, _dispatch_key=None, *, _compile: bool = False, _debug: bool = False):
         super().__init__(_dispatch_key)
         self._compile = _compile
+        self._debug = _debug
 
     def __torch_dispatch__(self, func, types, args=(), kwargs=None):
         if kwargs is None:
@@ -212,3 +229,14 @@ class ComplexDispatchMode(TorchDispatchMode):
         kwargs = tree_map(_as_complex_tensor, kwargs)
 
         return tree_map(_as_interleaved, func(*args, **kwargs))
+
+    def __enter__(self) -> Self:
+        if self._debug:
+            DEBUG_SET.set(set())
+        return super().__enter__()
+
+    def __exit__(self, type_, val, tb):
+        if self._debug:
+            print("\n".join([str(op) for op in DEBUG_SET.get()]))
+            DEBUG_SET.set(None)
+        return super().__exit__(type_, val, tb)

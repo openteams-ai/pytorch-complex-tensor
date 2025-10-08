@@ -82,9 +82,6 @@ class ComplexTensor(torch.Tensor):
 
     @property
     def im(self) -> torch.Tensor:
-        if self.is_conj():
-            return torch.ops.aten._neg_view(self._im)
-
         return self._im
 
     @classmethod
@@ -96,10 +93,10 @@ class ComplexTensor(torch.Tensor):
         kwargs = {} if kwargs is None else kwargs
 
         impl = lookup_complex(func, *args, **kwargs)
-        if impl is not None:
-            return impl(*args, **kwargs)
+        if impl is None:
+            return NotImplemented
 
-        return NotImplemented
+        return impl(*args, **kwargs)
 
     __torch_function__ = torch._C._disabled_torch_function_impl
 
