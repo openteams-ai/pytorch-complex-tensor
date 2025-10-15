@@ -218,52 +218,32 @@ def abs_impl(self: ComplexTensor) -> torch.Tensor:
 @register_complex(aten.angle)
 def angle_impl(self: ComplexTensor) -> torch.Tensor:
     x, y = split_complex_tensor(self)
-    return torch.arctan2(y, x)
+    return torch.atan2(y, x)
 
 
 @register_complex(aten.acos)
 def acos_impl(self: ComplexTensor) -> ComplexTensor:
-    x, y = split_complex_tensor(self)
-    out_dt, (x, y) = promote_real_cpu_tensors(x, y)
-
-    y2 = y**2
-    a = (x**2) + y2
-    b = torch.sqrt((a - 1) ** 2 + 4 * y2)
-    t = 0.5 * (a - 1 + b)
-    u = torch.acos(x / torch.sqrt(1 + t))
-    v = torch.asinh(-torch.sign(y) * torch.sqrt(t))
-
-    return ComplexTensor(u.to(out_dt), v.to(out_dt))
+    _, y = split_complex_tensor(self)
+    acosh_z = torch.acosh(self)
+    acosh_z_re, acosh_z_im = split_complex_tensor(acosh_z)
+    sign_im = 2 * torch.signbit(y) - 1
+    return ComplexTensor(torch.abs(acosh_z_im), sign_im * torch.abs(acosh_z_re))
 
 
 @register_complex(aten.asin)
 def asin_impl(self: ComplexTensor) -> ComplexTensor:
     x, y = split_complex_tensor(self)
-    out_dt, (x, y) = promote_real_cpu_tensors(x, y)
-
-    y2 = y**2
-    a = (x**2) + y2
-    b = torch.sqrt((a - 1) ** 2 + 4 * y2)
-    t = 0.5 * (a - 1 + b)
-
-    u = torch.asin(x / torch.sqrt(1 + t))
-    v = torch.asinh(torch.sign(y) * torch.sqrt(t))
-
-    return ComplexTensor(u.to(out_dt), v.to(out_dt))
+    asinh_iz = torch.asinh(ComplexTensor(-y, x))
+    asinh_iz_re, asinh_iz_im = split_complex_tensor(asinh_iz)
+    return ComplexTensor(asinh_iz_im, -asinh_iz_re)
 
 
 @register_complex(aten.atan)
 def atan_impl(self: ComplexTensor) -> ComplexTensor:
     x, y = split_complex_tensor(self)
-    out_dt, (x, y) = promote_real_cpu_tensors(x, y)
-
-    int1 = torch.log(ComplexTensor(-x, 1 - y) / ComplexTensor(x, 1 + y))
-    int1_re, int1_im = split_complex_tensor(int1)
-
-    out_re = 0.5 * int1_im
-    out_im = -0.5 * int1_re
-
-    return ComplexTensor(out_re.to(out_dt), out_im.to(out_dt))
+    tanh_iz = torch.atanh(ComplexTensor(-y, x))
+    tanh_iz_re, tanh_iz_im = split_complex_tensor(tanh_iz)
+    return ComplexTensor(tanh_iz_im, -tanh_iz_re)
 
 
 @register_complex(aten.asinh)
@@ -290,56 +270,57 @@ def atanh_impl(self: ComplexTensor) -> ComplexTensor:
 @register_complex(aten.cos)
 def cos_impl(self: ComplexTensor) -> ComplexTensor:
     x, y = split_complex_tensor(self)
-    out_dt, (x, y) = promote_real_cpu_tensors(x, y)
-    u = torch.cos(x) * torch.cosh(y)
-    v = -torch.sin(x) * torch.sinh(y)
-    return ComplexTensor(u.to(out_dt), v.to(out_dt))
+    return torch.cosh(ComplexTensor(-y, x))
 
 
 @register_complex(aten.cosh)
 def cosh_impl(self: ComplexTensor) -> ComplexTensor:
-    exp_x = torch.exp(self)
-    exp_nx = torch.reciprocal(exp_x)
-    return 0.5 * (exp_x + exp_nx)
+    x, y = split_complex_tensor(self)
+    out_dt, (x, y) = promote_real_cpu_tensors(x, y)
+    u = torch.cosh(x) * torch.cos(y)
+    v = torch.sinh(x) * torch.sin(y)
+    return ComplexTensor(u.to(out_dt), v.to(out_dt))
 
 
 @register_complex(aten.sin)
 def sin_impl(self: ComplexTensor) -> ComplexTensor:
-    self_re, self_im = split_complex_tensor(self)
-    out_dt, (self_re, self_im) = promote_real_cpu_tensors(self_re, self_im)
-
-    ret_re = torch.sin(self_re) * torch.cosh(self_im)
-    ret_im = torch.cos(self_re) * torch.sinh(self_im)
-
-    return ComplexTensor(ret_re.to(out_dt), ret_im.to(out_dt))
+    x, y = split_complex_tensor(self)
+    sinh_iz = torch.sinh(ComplexTensor(-y, x))
+    sinh_iz_re, sinh_iz_im = split_complex_tensor(sinh_iz)
+    return ComplexTensor(sinh_iz_im, -sinh_iz_re)
 
 
 @register_complex(aten.sinh)
 def sinh_impl(self: ComplexTensor) -> ComplexTensor:
-    exp_x = torch.exp(self)
-    exp_nx = torch.reciprocal(exp_x)
-    return 0.5 * (exp_x - exp_nx)
+    x, y = split_complex_tensor(self)
+    out_dt, (x, y) = promote_real_cpu_tensors(x, y)
+    u = torch.sinh(x) * torch.cos(y)
+    v = torch.cosh(x) * torch.sin(y)
+    return ComplexTensor(u.to(out_dt), v.to(out_dt))
 
 
 @register_complex(aten.tan)
 def tan_impl(self: ComplexTensor) -> ComplexTensor:
-    self_re, self_im = split_complex_tensor(self)
-    out_dt, (self_re, self_im) = promote_real_cpu_tensors(self_re, self_im)
-
-    cos_x = torch.cos(self_re)
-    sinh_y = torch.sinh(self_im)
-
-    num_re = torch.sin(self_re) * cos_x
-    num_im = sinh_y * torch.cosh(self_im)
-
-    den = cos_x * cos_x + sinh_y * sinh_y
-
-    return ComplexTensor((num_re / den).to(out_dt), (num_im / den).to(out_dt))
+    x, y = split_complex_tensor(self)
+    tanh_iz = torch.tanh(ComplexTensor(-y, x))
+    tanh_iz_re, tanh_iz_im = split_complex_tensor(tanh_iz)
+    return ComplexTensor(tanh_iz_im, -tanh_iz_re)
 
 
 @register_complex(aten.tanh)
 def tanh_impl(self: ComplexTensor) -> ComplexTensor:
-    return torch.sinh(self) / torch.cosh(self)
+    x, y = split_complex_tensor(self)
+    out_dt, (x, y) = promote_real_cpu_tensors(x, y)
+
+    _2x = 2 * x
+    _2y = 2 * y
+    _d = torch.cosh(_2x) + torch.cos(_2y)
+    _2xsh = torch.sinh(_2x)
+
+    out_re = _2xsh / _d
+    out_im = torch.sin(_2y) / _d
+
+    return ComplexTensor(out_re.to(out_dt), out_im.to(out_dt))
 
 
 @register_complex(aten.exp)
