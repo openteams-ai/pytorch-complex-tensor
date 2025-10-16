@@ -214,14 +214,7 @@ def cumprod_impl(self: ComplexTensor, *args, **kwargs) -> ComplexTensor:
 def abs_impl(self: ComplexTensor) -> torch.Tensor:
     x, y = split_complex_tensor(self)
     out_dt, (x, y) = promote_real_cpu_tensors(x, y)
-    scale = torch.maximum(torch.abs(x), torch.abs(y))
-    x_scaled = x / scale
-    y_scaled = y / scale
-    result = torch.where(
-        scale.to(torch.bool),
-        torch.sqrt(x_scaled * x_scaled + y_scaled * y_scaled) * scale,
-        False,
-    )
+    result = torch.hypot(x, y)
     return result.to(out_dt)
 
 
