@@ -4,8 +4,8 @@ from typing import Any
 
 import torch
 from torch._decomp import get_decompositions
-from torch._ops import OpOverloadPacket
-from torch._refs import is_complex
+from torch._ops import OpOverload, OpOverloadPacket
+from torch._refs import is_complex as _is_complex
 from torch.utils._python_dispatch import TorchDispatchMode
 from torch.utils._pytree import tree_flatten, tree_map, tree_unflatten
 
@@ -96,15 +96,16 @@ DEBUG_SET: ContextVar[set[OpType] | None] = ContextVar("DEBUG_SET", default=None
 
 
 def lookup_complex(func: OpType, *args, **kwargs) -> Callable:
-    debug_set = DEBUG_SET.get()
-    if debug_set is not None:
-        debug_set.add(func)
     return COMPLEX_OPS_TABLE.get(
         func,
         COMPLEX_OPS_TABLE.get(
             func.overloadpacket, DECOMPOSITIONS.get(func, DECOMPOSITIONS.get(func.overloadpacket))
         ),
     )
+
+
+def is_complex(x: torch.Tensor, /) -> bool:
+    return not isinstance(x, torch.Tensor) and isinstance(x, complex) or _is_complex(x)
 
 
 def split_complex_arg(
@@ -218,7 +219,13 @@ class ComplexDispatchMode(TorchDispatchMode):
         self._compile = _compile
         self._debug = _debug
 
-    def __torch_dispatch__(self, func, types, args=(), kwargs=None):
+    def __torch_dispatch__(
+        self,
+        func: OpOverload,
+        types: tuple[type],
+        args: tuple = (),
+        kwargs: dict[str, Any] | None = None,
+    ):
         if kwargs is None:
             kwargs = {}
 

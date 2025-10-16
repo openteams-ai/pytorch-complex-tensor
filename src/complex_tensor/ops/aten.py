@@ -10,6 +10,7 @@ from ._common import (
     ERROR_TYPES,
     OpType,
     complex_to_real_dtype,
+    is_complex,
     promote_real_cpu_tensors,
     register_binary_nonlinear,
     register_complex,
@@ -150,15 +151,19 @@ fill__impl = register_binary_linear(aten.fill_)
 @register_complex(aten.div)
 @register_complex(aten.true_divide)
 def div_impl(lhs: ComplexTensor, rhs: ComplexTensor, *, rounding_mode=None):
+    if rounding_mode is not None:
+        raise NotImplementedError
     a_r, a_i = split_complex_tensor(lhs)
+    if not is_complex(rhs):
+        return ComplexTensor(a_r / rhs, a_i / rhs)
     b_r, b_i = split_complex_arg(rhs)
     out_dt, (a_r, a_i, b_r, b_i) = promote_real_cpu_tensors(a_r, a_i, b_r, b_i)
     num_r = a_r * b_r + a_i * b_i
     num_i = a_i * b_r - a_r * b_i
     den = b_r * b_r + b_i * b_i
     return ComplexTensor(
-        aten.div(num_r, den, rounding_mode=rounding_mode).to(out_dt),
-        aten.div(num_i, den, rounding_mode=rounding_mode).to(out_dt),
+        (num_r / den).to(out_dt),
+        (num_i / den).to(out_dt),
     )
 
 
@@ -210,9 +215,11 @@ def abs_impl(self: ComplexTensor) -> torch.Tensor:
     x, y = split_complex_tensor(self)
     out_dt, (x, y) = promote_real_cpu_tensors(x, y)
     scale = torch.maximum(torch.abs(x), torch.abs(y))
+    x_scaled = x / scale
+    y_scaled = y / scale
     result = torch.where(
         scale.to(torch.bool),
-        torch.sqrt(torch.pow(x / scale, 2) + torch.pow(y / scale, 2)) * scale,
+        torch.sqrt(x_scaled * x_scaled + y_scaled * y_scaled) * scale,
         False,
     )
     return result.to(out_dt)
@@ -569,10 +576,8 @@ def sgn_impl(self: ComplexTensor) -> ComplexTensor:
     self_r, self_i = split_complex_tensor(self)
     out_dt, (self_r, self_i) = promote_real_cpu_tensors(self_r, self_i)
     abs_self = torch.abs(ComplexTensor(self_r, self_i))
-    mask = abs_self != 0
-    masked_sgn = ComplexTensor(
-        torch.div(self_r, abs_self).to(out_dt), torch.div(self_i, abs_self).to(out_dt)
-    )
+    mask = (self_r != 0) | (self_i != 0)
+    masked_sgn = ComplexTensor((self_r / abs_self).to(out_dt), (self_i / abs_self).to(out_dt))
     return torch.where(mask, masked_sgn, 0)
 
 

@@ -89,6 +89,7 @@ class ComplexTensor(torch.Tensor):
         cls, func: OpOverload, types: tuple[type], args: tuple = (), kwargs: dict | None = None
     ):
         from .ops import lookup_complex
+        from .ops._common import DEBUG_SET
 
         kwargs = {} if kwargs is None else kwargs
 
@@ -96,7 +97,30 @@ class ComplexTensor(torch.Tensor):
         if impl is None:
             return NotImplemented
 
-        return impl(*args, **kwargs)
+        ret = impl(*args, **kwargs)
+
+        debug_set = DEBUG_SET.get()
+        if debug_set is not None and all(
+            disallowed_name not in str(func) for disallowed_name in ("empty", "rand")
+        ):
+            from torch.utils._pytree import tree_flatten, tree_map
+
+            from .ops._common import _as_interleaved
+
+            args_ref, kwargs_ref = tree_map(_as_interleaved, (args, kwargs))
+            ret_ref = func(*args_ref, **kwargs_ref)
+
+            ret_flat, _ = tree_flatten(ret)
+            ret_ref_flat, _ = tree_flatten(ret_ref)
+            if not all(
+                torch.allclose(_as_interleaved(r), rr, equal_nan=True)
+                for r, rr in zip(ret_flat, ret_ref_flat, strict=True)
+                if isinstance(rr, torch.Tensor)
+            ):
+                print((args, kwargs, ret, ret_ref))
+                debug_set.add(func)
+
+        return ret
 
     __torch_function__ = torch._C._disabled_torch_function_impl
 
