@@ -105,7 +105,7 @@ def lookup_complex(func: OpType, *args, **kwargs) -> Callable:
 
 
 def is_complex(x: torch.Tensor, /) -> bool:
-    return not isinstance(x, torch.Tensor) and isinstance(x, complex) or _is_complex(x)
+    return (isinstance(x, torch.Tensor) and _is_complex(x)) or isinstance(x, complex)
 
 
 def split_complex_arg(

@@ -117,7 +117,6 @@ class ComplexTensor(torch.Tensor):
                 for r, rr in zip(ret_flat, ret_ref_flat, strict=True)
                 if isinstance(rr, torch.Tensor)
             ):
-                print((args, kwargs, ret, ret_ref))
                 debug_set.add(func)
 
         return ret
