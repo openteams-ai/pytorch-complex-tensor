@@ -13,10 +13,10 @@ from complex_tensor.ops._common import COMPLEX_TO_REAL, _as_interleaved
 COMPLEX_DTYPES = set(COMPLEX_TO_REAL)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class TestDescriptor:
     op_name: str | None = field(default=None)
-    device: str | None = field(default=None)
+    device: torch.device | None = field(default=None)
     dtype: torch.dtype | None = field(default=None)
     compile: bool | None = field(default=None)
     gradcheck: bool | None = field(default=None)

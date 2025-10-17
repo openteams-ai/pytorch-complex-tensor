@@ -2,16 +2,18 @@ from __future__ import annotations
 
 import torch
 from torch._ops import OpOverload
-from torch.testing._internal.common_device_type import instantiate_device_type_tests, ops
+from torch.testing._internal.common_device_type import OpDTypes, instantiate_device_type_tests, ops
 from torch.testing._internal.common_methods_invocations import op_db
 from torch.testing._internal.common_utils import (
+    TestGradients,
     parametrize,
     run_tests,
+    unMarkDynamoStrictTest,
 )
 from torch.testing._internal.opinfo.core import OpInfo
 
 from complex_tensor.ops import COMPLEX_OPS_TABLE, FORCE_TEST_LIST
-from complex_tensor.ops._common import _as_complex_tensor
+from complex_tensor.ops._common import ComplexDispatchMode, _as_complex_tensor
 from complex_tensor.test.utils import (
     COMPLEX_DTYPES,
     TestCase,
@@ -93,16 +95,16 @@ class TestComplexTensor(TestCase):
     _default_dtype_check_enabled = True
 
     @parametrize("compile", [False, True])
-    @ops(implemented_op_db, allowed_dtypes=list(COMPLEX_DTYPES))
+    @ops(implemented_op_db, dtypes=OpDTypes.supported, allowed_dtypes=list(COMPLEX_DTYPES))
     def test_consistency(self, device, dtype, op: OpInfo, compile: bool):
         self.check_consistency(device, dtype, op, compile)
 
     @parametrize("compile", [False, True])
-    @ops(force_test_op_db, dtypes=list(COMPLEX_DTYPES))
+    @ops(force_test_op_db, allowed_dtypes=list(COMPLEX_DTYPES))
     def test_maybe_error(self, device, dtype, op: OpInfo, compile: bool):
         self.check_consistency(device, dtype, op, compile)
 
-    def check_consistency(self, device, dtype, op: OpInfo, compile: bool) -> None:
+    def check_consistency(self, device: torch.device, dtype, op: OpInfo, compile: bool) -> None:
         test_info = TestDescriptor(
             op_name=op.name, device=device, dtype=dtype, compile=compile, gradcheck=False
         )
@@ -134,7 +136,27 @@ class TestComplexTensor(TestCase):
             self.assertSameResult(expected, actual, ignore_exc_types=compile, **kwargs)
 
 
+@unMarkDynamoStrictTest
+class TestComplexBwdGradients(TestGradients):
+    @ops(implemented_op_db, dtypes=OpDTypes.supported_backward, allowed_dtypes=[torch.complex128])
+    def test_fn_grad(self, device: torch.device, dtype: torch.dtype, op: OpInfo) -> None:
+        test_info = TestDescriptor(
+            op_name=op.name, device=device, dtype=dtype, compile=False, gradcheck=True
+        )
+        for xfail_info, reason in SKIPS.items():
+            if xfail_info.matches(test_info):
+                self.skipTest(reason)
+
+        if dtype not in op.supported_backward_dtypes(torch.device(device).type):
+            self.skipTest(f"Skipped! {dtype=} is not in supported backward dtypes!")
+
+        with ComplexDispatchMode(_debug=True):
+            op.gradcheck_fast_mode = False
+            self._grad_test_helper(device, dtype, op, op.get_op())
+
+
 instantiate_device_type_tests(TestComplexTensor, globals())
+instantiate_device_type_tests(TestComplexBwdGradients, globals())
 
 if __name__ == "__main__":
     run_tests()
