@@ -148,6 +148,13 @@ diagonal_scatter_impl = register_binary_linear(aten.diagonal_scatter)
 fill__impl = register_binary_linear(aten.fill_)
 
 
+@register_complex(aten.rsub)
+def rsub_impl(lhs: ComplexTensor, rhs: ComplexTensor, alpha=None) -> ComplexTensor:
+    if alpha is None:
+        return torch.sub(rhs, lhs)
+    return torch.sub(rhs, lhs, alpha=alpha)
+
+
 @register_complex(aten.div)
 @register_complex(aten.true_divide)
 def div_impl(lhs: ComplexTensor, rhs: ComplexTensor, *, rounding_mode=None):
@@ -700,7 +707,8 @@ def stack_impl(self: list[ComplexTensor], *args, **kwargs) -> ComplexTensor:
 
 # TODO (hameerabbasi): Not being tested
 @register_complex(aten._conj_physical)
-def _conj_physical_impl(self: ComplexTensor) -> ComplexTensor:
+@register_complex(aten.conj_physical)
+def conj_physical_impl(self: ComplexTensor) -> ComplexTensor:
     re, im = split_complex_tensor(self)
     return ComplexTensor(re, -im)
 
@@ -825,3 +833,16 @@ def index_put__impl(
     out_im = self_im.index_put_(indices, values_im, accumulate=accumulate)
 
     return ComplexTensor(out_re, out_im)
+
+
+@register_complex(aten.tanh_backward)
+def tanh_backward(out_grad: torch.Tensor, y: torch.Tensor):
+    return out_grad * (1.0 - y * y).conj_physical()
+
+
+@register_complex(aten.diagonal_backward)
+def diagonal_backward(
+    grad_output: torch.Tensor, input_sizes: list[int], offset: int, dim1: int, dim2: int
+):
+    grad_input = grad_output.new_zeros(input_sizes)
+    return torch.diagonal_scatter(grad_input, grad_output, offset, dim1, dim2)

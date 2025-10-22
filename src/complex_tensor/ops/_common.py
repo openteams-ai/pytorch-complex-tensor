@@ -33,33 +33,26 @@ PROMOTE_TYPES_CPU = {
 
 
 def promote_real_cpu_tensors(
-    tensor: torch.Tensor, *tensors: torch.Tensor
+    *tensors: torch.Tensor,
 ) -> tuple[torch.dtype, tuple[torch.Tensor, ...]]:
+    tensor = next(t for t in tensors if isinstance(t, torch.Tensor))
     out_dt = tensor.dtype
     for t in tensors:
         if isinstance(t, torch.Tensor):
             out_dt = torch.promote_types(out_dt, t.dtype)
 
     prom_dt = PROMOTE_TYPES_CPU.get(out_dt)
-    if (
-        prom_dt is None
-        or tensor.device.type != "cpu"
-        or any(t.device.type != "cpu" for t in tensors if isinstance(t, torch.Tensor))
+    if prom_dt is None or any(
+        t.device.type != "cpu" for t in tensors if isinstance(t, torch.Tensor)
     ):
-        return out_dt, (
-            tensor.to(out_dt),
-            *(
-                t.to(out_dt) if isinstance(t, torch.Tensor) else torch.asarray(t, dtype=out_dt)
-                for t in tensors
-            ),
+        return out_dt, tuple(
+            t.to(out_dt) if isinstance(t, torch.Tensor) else torch.asarray(t, dtype=out_dt)
+            for t in tensors
         )
 
-    return out_dt, (
-        tensor.to(prom_dt),
-        *(
-            t.to(prom_dt) if isinstance(t, torch.Tensor) else torch.asarray(t, dtype=prom_dt)
-            for t in tensors
-        ),
+    return out_dt, tuple(
+        t.to(prom_dt) if isinstance(t, torch.Tensor) else torch.asarray(t, dtype=prom_dt)
+        for t in tensors
     )
 
 
