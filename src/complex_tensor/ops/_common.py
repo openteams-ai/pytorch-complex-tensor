@@ -218,6 +218,7 @@ class ComplexDispatchMode(TorchDispatchMode):
         super().__init__(_dispatch_key)
         self._compile = _compile
         self._debug = _debug
+        self._debug_token = None
 
     def __torch_dispatch__(
         self,
@@ -239,11 +240,12 @@ class ComplexDispatchMode(TorchDispatchMode):
 
     def __enter__(self) -> Self:
         if self._debug:
-            DEBUG_SET.set(set())
+            self._debug_token = DEBUG_SET.set(set())
         return super().__enter__()
 
     def __exit__(self, type_, val, tb):
-        if self._debug:
+        if self._debug_token is not None:
             print("\n".join([str(op) for op in DEBUG_SET.get()]))
-            DEBUG_SET.set(None)
+            DEBUG_SET.reset(self._debug_token)
+            self._debug_token = None
         return super().__exit__(type_, val, tb)

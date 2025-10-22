@@ -150,7 +150,7 @@ class TestComplexBwdGradients(TestGradients):
         if dtype not in op.supported_backward_dtypes(torch.device(device).type):
             self.skipTest(f"Skipped! {dtype=} is not in supported backward dtypes!")
 
-        with ComplexDispatchMode(_debug=True):
+        with ComplexDispatchMode():
             op.gradcheck_fast_mode = False
             self._grad_test_helper(device, dtype, op, op.get_op())
 
