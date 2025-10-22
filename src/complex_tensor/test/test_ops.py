@@ -2,16 +2,18 @@ from __future__ import annotations
 
 import torch
 from torch._ops import OpOverload
-from torch.testing._internal.common_device_type import instantiate_device_type_tests, ops
+from torch.testing._internal.common_device_type import OpDTypes, instantiate_device_type_tests, ops
 from torch.testing._internal.common_methods_invocations import op_db
 from torch.testing._internal.common_utils import (
+    TestGradients,
     parametrize,
     run_tests,
+    unMarkDynamoStrictTest,
 )
 from torch.testing._internal.opinfo.core import OpInfo
 
 from complex_tensor.ops import COMPLEX_OPS_TABLE, FORCE_TEST_LIST
-from complex_tensor.ops._common import _as_complex_tensor
+from complex_tensor.ops._common import ComplexDispatchMode, _as_complex_tensor
 from complex_tensor.test.utils import (
     COMPLEX_DTYPES,
     TestCase,
@@ -71,6 +73,39 @@ SKIPS = {
         op_name="allclose", compile=True
     ): "`aten.allclose` requires data-dependent control-flow",
     TestDescriptor(op_name="randn_like"): "Inconsistent output",
+    TestDescriptor(op_name="angle", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="asinh", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="atanh", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="reciprocal", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="rsqrt", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="select", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="asin", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="log", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="sgn", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="cumprod", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="slice", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="sqrt", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="tan", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="true_divide", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="prod", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="div", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="expm1", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="var", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="bmm", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="diagonal", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="sinh", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="abs", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="sin", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="atan", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="acos", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="cos", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="cosh", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="addmm", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="pow", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="log1p", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="tanh", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="mm", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="mul", gradcheck=True): "Numerical inconsistency",
 }
 
 EXTRA_KWARGS = {
@@ -93,16 +128,16 @@ class TestComplexTensor(TestCase):
     _default_dtype_check_enabled = True
 
     @parametrize("compile", [False, True])
-    @ops(implemented_op_db, allowed_dtypes=list(COMPLEX_DTYPES))
+    @ops(implemented_op_db, dtypes=OpDTypes.supported, allowed_dtypes=list(COMPLEX_DTYPES))
     def test_consistency(self, device, dtype, op: OpInfo, compile: bool):
         self.check_consistency(device, dtype, op, compile)
 
     @parametrize("compile", [False, True])
-    @ops(force_test_op_db, dtypes=list(COMPLEX_DTYPES))
+    @ops(force_test_op_db, allowed_dtypes=list(COMPLEX_DTYPES))
     def test_maybe_error(self, device, dtype, op: OpInfo, compile: bool):
         self.check_consistency(device, dtype, op, compile)
 
-    def check_consistency(self, device, dtype, op: OpInfo, compile: bool) -> None:
+    def check_consistency(self, device: torch.device, dtype, op: OpInfo, compile: bool) -> None:
         test_info = TestDescriptor(
             op_name=op.name, device=device, dtype=dtype, compile=compile, gradcheck=False
         )
@@ -134,7 +169,27 @@ class TestComplexTensor(TestCase):
             self.assertSameResult(expected, actual, ignore_exc_types=compile, **kwargs)
 
 
+@unMarkDynamoStrictTest
+class TestComplexBwdGradients(TestGradients):
+    @ops(implemented_op_db, dtypes=OpDTypes.supported_backward, allowed_dtypes=[torch.complex128])
+    def test_fn_grad(self, device: torch.device, dtype: torch.dtype, op: OpInfo) -> None:
+        test_info = TestDescriptor(
+            op_name=op.name, device=device, dtype=dtype, compile=False, gradcheck=True
+        )
+        for xfail_info, reason in SKIPS.items():
+            if xfail_info.matches(test_info):
+                self.skipTest(reason)
+
+        if dtype not in op.supported_backward_dtypes(torch.device(device).type):
+            self.skipTest(f"Skipped! {dtype=} is not in supported backward dtypes!")
+
+        with ComplexDispatchMode():
+            op.gradcheck_fast_mode = False
+            self._grad_test_helper(device, dtype, op, op.get_op())
+
+
 instantiate_device_type_tests(TestComplexTensor, globals())
+instantiate_device_type_tests(TestComplexBwdGradients, globals())
 
 if __name__ == "__main__":
     run_tests()
