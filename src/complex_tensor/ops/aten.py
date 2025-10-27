@@ -10,6 +10,7 @@ from ._common import (
     ERROR_TYPES,
     OpType,
     complex_to_real_dtype,
+    is_complex,
     promote_real_cpu_tensors,
     register_binary_nonlinear,
     register_complex,
@@ -101,7 +102,6 @@ SIMPLE_FORCE_TESTED_OPS = [
     aten.alias,
     aten.lift_fresh,
     aten._unsafe_view,
-    aten.index_put_,
     aten.index,
     aten._neg_view,
     aten.avg_pool2d,
@@ -123,6 +123,7 @@ del simple_op
 
 # some binary ops which we can stamp out
 mul_impl = register_binary_nonlinear(aten.mul)
+mul__impl = register_binary_nonlinear(aten.mul_)
 mm_impl = register_binary_nonlinear(aten.mm)
 dot_impl = register_binary_nonlinear(aten.dot)
 bmm_impl = register_binary_nonlinear(aten.bmm)
@@ -140,22 +141,38 @@ select_scatter_impl = register_force_test(
 )
 
 add_impl = register_binary_linear(aten.add)
+add__impl = register_binary_linear(aten.add_)
 sub_impl = register_binary_linear(aten.sub)
+sub__impl = register_binary_linear(aten.sub_)
 diagonal_scatter_impl = register_binary_linear(aten.diagonal_scatter)
+fill__impl = register_binary_linear(aten.fill_)
+
+
+@register_complex(aten.rsub)
+def rsub_impl(lhs: ComplexTensor, rhs: ComplexTensor, alpha=None) -> ComplexTensor:
+    if alpha is None:
+        return torch.sub(rhs, lhs)
+    return torch.sub(rhs, lhs, alpha=alpha)
 
 
 @register_complex(aten.div)
 @register_complex(aten.true_divide)
 def div_impl(lhs: ComplexTensor, rhs: ComplexTensor, *, rounding_mode=None):
+    if rounding_mode is not None:
+        raise NotImplementedError(
+            "`rounding_mode` other than `None` not implemented for`ComplexTensor`."
+        )
     a_r, a_i = split_complex_tensor(lhs)
+    if not is_complex(rhs):
+        return ComplexTensor(a_r / rhs, a_i / rhs)
     b_r, b_i = split_complex_arg(rhs)
     out_dt, (a_r, a_i, b_r, b_i) = promote_real_cpu_tensors(a_r, a_i, b_r, b_i)
     num_r = a_r * b_r + a_i * b_i
     num_i = a_i * b_r - a_r * b_i
     den = b_r * b_r + b_i * b_i
     return ComplexTensor(
-        aten.div(num_r, den, rounding_mode=rounding_mode).to(out_dt),
-        aten.div(num_i, den, rounding_mode=rounding_mode).to(out_dt),
+        (num_r / den).to(out_dt),
+        (num_i / den).to(out_dt),
     )
 
 
@@ -206,12 +223,7 @@ def cumprod_impl(self: ComplexTensor, *args, **kwargs) -> ComplexTensor:
 def abs_impl(self: ComplexTensor) -> torch.Tensor:
     x, y = split_complex_tensor(self)
     out_dt, (x, y) = promote_real_cpu_tensors(x, y)
-    scale = torch.maximum(torch.abs(x), torch.abs(y))
-    result = torch.where(
-        scale.to(torch.bool),
-        torch.sqrt(torch.pow(x / scale, 2) + torch.pow(y / scale, 2)) * scale,
-        False,
-    )
+    result = torch.hypot(x, y)
     return result.to(out_dt)
 
 
@@ -415,12 +427,16 @@ def isclose_impl(
         a_r, a_i = split_complex_tensor(self)
         b_r, b_i = split_complex_arg(rhs)
 
+        a_r_nan = torch.isnan(a_r)
+        b_r_nan = torch.isnan(b_r)
+        a_i_nan = torch.isnan(a_i)
+        b_i_nan = torch.isnan(b_i)
+        a_nan = a_r_nan | a_i_nan
+
         # This logical expression makes sure that the isnan of both the real and imaginary parts
         # matches (so 1 + nan*i doesn't equal nan + 1*i)
-        equal_nan_condition = (torch.isnan(a_r) == torch.isnan(b_r)) & (
-            torch.isnan(a_i) == torch.isnan(b_i)
-        )
-        return basic_condition & equal_nan_condition
+        equal_nan_condition = ((a_r_nan == b_r_nan) & (a_i_nan == b_i_nan)) & a_nan
+        return basic_condition | equal_nan_condition
 
     return basic_condition
 
@@ -474,21 +490,6 @@ def masked_scatter_impl(
     source_r, source_i = split_complex_arg(source)
     ret_r = torch.masked_scatter(self_r, mask, source_r)
     ret_i = torch.masked_scatter(self_i, mask, source_i)
-
-    return ComplexTensor(ret_r, ret_i)
-
-
-@register_complex(aten.index_put)
-def index_put_impl(
-    self: ComplexTensor,
-    indices: tuple[torch.Tensor, ...],
-    values: ComplexTensor,
-    accumulate: bool = False,
-) -> ComplexTensor:
-    self_r, self_i = split_complex_tensor(self)
-    values_r, values_i = split_complex_arg(values)
-    ret_r = torch.index_put(self_r, indices, values_r, accumulate=accumulate)
-    ret_i = torch.index_put(self_i, indices, values_i, accumulate=accumulate)
 
     return ComplexTensor(ret_r, ret_i)
 
@@ -581,10 +582,8 @@ def sgn_impl(self: ComplexTensor) -> ComplexTensor:
     self_r, self_i = split_complex_tensor(self)
     out_dt, (self_r, self_i) = promote_real_cpu_tensors(self_r, self_i)
     abs_self = torch.abs(ComplexTensor(self_r, self_i))
-    mask = abs_self != 0
-    masked_sgn = ComplexTensor(
-        torch.div(self_r, abs_self).to(out_dt), torch.div(self_i, abs_self).to(out_dt)
-    )
+    mask = (self_r != 0) | (self_i != 0)
+    masked_sgn = ComplexTensor((self_r / abs_self).to(out_dt), (self_i / abs_self).to(out_dt))
     return torch.where(mask, masked_sgn, 0)
 
 
@@ -696,7 +695,7 @@ def allclose_impl(
     rtol: float = 1e-05,
     atol: float = 1e-08,
     equal_nan: bool = False,
-) -> complex:
+) -> bool:
     return torch.all(torch.isclose(input, other, rtol=rtol, atol=atol, equal_nan=equal_nan)).item()
 
 
@@ -710,7 +709,8 @@ def stack_impl(self: list[ComplexTensor], *args, **kwargs) -> ComplexTensor:
 
 # TODO (hameerabbasi): Not being tested
 @register_complex(aten._conj_physical)
-def _conj_physical_impl(self: ComplexTensor) -> ComplexTensor:
+@register_complex(aten.conj_physical)
+def conj_physical_impl(self: ComplexTensor) -> ComplexTensor:
     re, im = split_complex_tensor(self)
     return ComplexTensor(re, -im)
 
@@ -719,7 +719,7 @@ def _conj_physical_impl(self: ComplexTensor) -> ComplexTensor:
 @register_complex(aten._conj)
 def _conj_impl(self: ComplexTensor) -> ComplexTensor:
     re, im = split_complex_tensor(self)
-    return ComplexTensor(re, aten._neg_view(im))
+    return ComplexTensor(re, torch._neg_view(im))
 
 
 @register_complex(aten.index_add)
@@ -797,3 +797,54 @@ def constant_pad_nd_impl(self: ComplexTensor, pad, value: complex | None = None)
 def var_impl(self: ComplexTensor, *args, **kwargs) -> torch.Tensor:
     self_re, self_im = split_complex_tensor(self)
     return torch.var(self_re, *args, **kwargs) + torch.var(self_im, *args, **kwargs)
+
+
+@register_complex(aten.scatter_add)
+def scatter_add_impl(self: ComplexTensor, dim, index, src: ComplexTensor) -> ComplexTensor:
+    self_re, self_im = split_complex_arg(self)
+    src_re, src_im = split_complex_arg(src)
+
+    ret_re = torch.scatter_add(self_re, dim, index, src_re)
+    ret_im = torch.scatter_add(self_im, dim, index, src_im)
+
+    return ComplexTensor(ret_re, ret_im)
+
+
+@register_complex(aten.scatter_add_)
+def scatter_add__impl(self: ComplexTensor, dim, index, src: ComplexTensor) -> ComplexTensor:
+    self_re, self_im = split_complex_arg(self)
+    src_re, src_im = split_complex_arg(src)
+
+    out_re = self_re.scatter_add_(dim, index, src_re)
+    out_im = self_im.scatter_add_(dim, index, src_im)
+
+    return ComplexTensor(out_re, out_im)
+
+
+@register_complex(aten.index_put_)
+def index_put__impl(
+    self: ComplexTensor,
+    indices: tuple[torch.Tensor, ...],
+    values: ComplexTensor,
+    accumulate: bool = False,
+) -> ComplexTensor:
+    self_re, self_im = split_complex_arg(self)
+    values_re, values_im = split_complex_arg(values)
+
+    out_re = self_re.index_put_(indices, values_re, accumulate=accumulate)
+    out_im = self_im.index_put_(indices, values_im, accumulate=accumulate)
+
+    return ComplexTensor(out_re, out_im)
+
+
+@register_complex(aten.tanh_backward)
+def tanh_backward(out_grad: torch.Tensor, y: torch.Tensor):
+    return out_grad * (1.0 - y * y).conj_physical()
+
+
+@register_complex(aten.diagonal_backward)
+def diagonal_backward(
+    grad_output: torch.Tensor, input_sizes: list[int], offset: int, dim1: int, dim2: int
+):
+    grad_input = grad_output.new_zeros(input_sizes)
+    return torch.diagonal_scatter(grad_input, grad_output, offset, dim1, dim2)

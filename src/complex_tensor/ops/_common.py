@@ -1,11 +1,15 @@
 from collections.abc import Callable
+from contextvars import ContextVar
 from typing import Any
 
 import torch
-from torch._ops import OpOverloadPacket
-from torch._refs import is_complex
+from torch._decomp import get_decompositions
+from torch._ops import OpOverload, OpOverloadPacket
+from torch._refs import is_complex as _is_complex
 from torch.utils._python_dispatch import TorchDispatchMode
 from torch.utils._pytree import tree_flatten, tree_map, tree_unflatten
+
+from typing_extensions import Self
 
 from ..complex_tensor import ComplexTensor
 
@@ -29,33 +33,26 @@ PROMOTE_TYPES_CPU = {
 
 
 def promote_real_cpu_tensors(
-    tensor: torch.Tensor, *tensors: torch.Tensor
+    *tensors: torch.Tensor,
 ) -> tuple[torch.dtype, tuple[torch.Tensor, ...]]:
+    tensor = next(t for t in tensors if isinstance(t, torch.Tensor))
     out_dt = tensor.dtype
     for t in tensors:
         if isinstance(t, torch.Tensor):
             out_dt = torch.promote_types(out_dt, t.dtype)
 
     prom_dt = PROMOTE_TYPES_CPU.get(out_dt)
-    if (
-        prom_dt is None
-        or tensor.device.type != "cpu"
-        or any(t.device.type != "cpu" for t in tensors if isinstance(t, torch.Tensor))
+    if prom_dt is None or any(
+        t.device.type != "cpu" for t in tensors if isinstance(t, torch.Tensor)
     ):
-        return out_dt, (
-            tensor.to(out_dt),
-            *(
-                t.to(out_dt) if isinstance(t, torch.Tensor) else torch.asarray(t, dtype=out_dt)
-                for t in tensors
-            ),
+        return out_dt, tuple(
+            t.to(out_dt) if isinstance(t, torch.Tensor) else torch.asarray(t, dtype=out_dt)
+            for t in tensors
         )
 
-    return out_dt, (
-        tensor.to(prom_dt),
-        *(
-            t.to(prom_dt) if isinstance(t, torch.Tensor) else torch.asarray(t, dtype=prom_dt)
-            for t in tensors
-        ),
+    return out_dt, tuple(
+        t.to(prom_dt) if isinstance(t, torch.Tensor) else torch.asarray(t, dtype=prom_dt)
+        for t in tensors
     )
 
 
@@ -87,8 +84,21 @@ def register_force_test(op: OpType, *args, **kwargs):
     return register_complex(op, *args, **kwargs)
 
 
-def lookup_complex(func, *args, **kwargs):
-    return COMPLEX_OPS_TABLE.get(func, COMPLEX_OPS_TABLE.get(func.overloadpacket, None))
+DECOMPOSITIONS = get_decompositions(list(torch.ops.aten))
+DEBUG_SET: ContextVar[set[OpType] | None] = ContextVar("DEBUG_SET", default=None)
+
+
+def lookup_complex(func: OpType, *args, **kwargs) -> Callable:
+    return COMPLEX_OPS_TABLE.get(
+        func,
+        COMPLEX_OPS_TABLE.get(
+            func.overloadpacket, DECOMPOSITIONS.get(func, DECOMPOSITIONS.get(func.overloadpacket))
+        ),
+    )
+
+
+def is_complex(x: torch.Tensor, /) -> bool:
+    return (isinstance(x, torch.Tensor) and _is_complex(x)) or isinstance(x, complex)
 
 
 def split_complex_arg(
@@ -197,18 +207,40 @@ def _as_interleaved(arg: ComplexTensor | Any) -> torch.Tensor | Any:
 
 
 class ComplexDispatchMode(TorchDispatchMode):
-    def __init__(self, _dispatch_key=None, *, _compile=False):
+    def __init__(self, _dispatch_key=None, *, _compile: bool = False, _debug: bool = False):
         super().__init__(_dispatch_key)
         self._compile = _compile
+        self._debug = _debug
+        self._debug_token = None
 
-    def __torch_dispatch__(self, func, types, args=(), kwargs=None):
+    def __torch_dispatch__(
+        self,
+        func: OpOverload,
+        types: tuple[type],
+        args: tuple = (),
+        kwargs: dict[str, Any] | None = None,
+    ):
         if kwargs is None:
             kwargs = {}
 
-        if compile:
+        if self._compile:
             func = torch.compile(func)
 
         args = tree_map(_as_complex_tensor, args)
         kwargs = tree_map(_as_complex_tensor, kwargs)
 
         return tree_map(_as_interleaved, func(*args, **kwargs))
+
+    def __enter__(self) -> Self:
+        # Note (debugging ops): This block sets the debugging mode
+        if self._debug:
+            self._debug_token = DEBUG_SET.set(set())
+        return super().__enter__()
+
+    def __exit__(self, type_, val, tb):
+        # Note (debugging ops): This block resets the debugging mode
+        if self._debug_token is not None:
+            print("\n".join([str(op) for op in DEBUG_SET.get()]))
+            DEBUG_SET.reset(self._debug_token)
+            self._debug_token = None
+        return super().__exit__(type_, val, tb)

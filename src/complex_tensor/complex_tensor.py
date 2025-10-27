@@ -3,13 +3,14 @@ from __future__ import annotations
 from typing import Any
 
 import torch
+from torch._ops import OpOverload
 
 from typing_extensions import Self
 
 
 class ComplexTensor(torch.Tensor):
-    re: torch.Tensor
-    im: torch.Tensor
+    _re: torch.Tensor
+    _im: torch.Tensor
 
     def __new__(cls, real: torch.Tensor, imag: torch.Tensor) -> Self:
         from complex_tensor.ops._common import REAL_TO_COMPLEX
@@ -70,32 +71,58 @@ class ComplexTensor(torch.Tensor):
             layout=layout,
             requires_grad=False,
         )
-        res.re = real
-        res.im = imag
+        res._re = real
+        res._im = imag
 
         return res
 
     @property
-    def real(self) -> torch.Tensor:
-        return self.re
+    def re(self) -> torch.Tensor:
+        return self._re
 
     @property
-    def imag(self) -> torch.Tensor:
-        return self.im
+    def im(self) -> torch.Tensor:
+        return self._im
 
     @classmethod
     def __torch_dispatch__(
-        cls, func, types: tuple[type], args: tuple = (), kwargs: dict | None = None
+        cls, func: OpOverload, types: tuple[type], args: tuple = (), kwargs: dict | None = None
     ):
         from .ops import lookup_complex
+        from .ops._common import DEBUG_SET
 
         kwargs = {} if kwargs is None else kwargs
 
-        fn = lookup_complex(func, *args, **kwargs)
-        if fn is not None:
-            return fn(*args, **kwargs)
+        impl = lookup_complex(func, *args, **kwargs)
+        if impl is None:
+            return NotImplemented
 
-        return NotImplemented
+        ret = impl(*args, **kwargs)
+
+        # Note (debugging ops): This block checks if debugging mode is enabled,
+        # and if it is, checks if the current op matches the behaviour of the
+        # reference op. It is useful for detecting behaviour mismatches.
+        debug_set = DEBUG_SET.get()
+        if debug_set is not None and all(
+            disallowed_name not in str(func) for disallowed_name in ("empty", "rand")
+        ):
+            from torch.utils._pytree import tree_flatten, tree_map
+
+            from .ops._common import _as_interleaved
+
+            args_ref, kwargs_ref = tree_map(_as_interleaved, (args, kwargs))
+            ret_ref = func(*args_ref, **kwargs_ref)
+
+            ret_flat, _ = tree_flatten(ret)
+            ret_ref_flat, _ = tree_flatten(ret_ref)
+            if not all(
+                torch.allclose(_as_interleaved(r), rr, equal_nan=True)
+                for r, rr in zip(ret_flat, ret_ref_flat, strict=True)
+                if isinstance(rr, torch.Tensor)
+            ):
+                debug_set.add(func)
+
+        return ret
 
     __torch_function__ = torch._C._disabled_torch_function_impl
 
@@ -123,7 +150,7 @@ class ComplexTensor(torch.Tensor):
         return ["re", "im"], None
 
     def __repr__(self) -> str:
-        return f"ComplexTensor(real={self.re}, imag={self.im})"
+        return f"ComplexTensor(real={self.re!r}, imag={self.im!r})"
 
     def is_pinned(self, device: torch.device | None = None) -> bool:
         return self.re.is_pinned(device)
