@@ -232,11 +232,13 @@ class ComplexDispatchMode(TorchDispatchMode):
         return tree_map(_as_interleaved, func(*args, **kwargs))
 
     def __enter__(self) -> Self:
+        # Note (debugging ops): This block sets the debugging mode
         if self._debug:
             self._debug_token = DEBUG_SET.set(set())
         return super().__enter__()
 
     def __exit__(self, type_, val, tb):
+        # Note (debugging ops): This block resets the debugging mode
         if self._debug_token is not None:
             print("\n".join([str(op) for op in DEBUG_SET.get()]))
             DEBUG_SET.reset(self._debug_token)

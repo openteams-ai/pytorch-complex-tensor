@@ -99,6 +99,9 @@ class ComplexTensor(torch.Tensor):
 
         ret = impl(*args, **kwargs)
 
+        # Note (debugging ops): This block checks if debugging mode is enabled,
+        # and if it is, checks if the current op matches the behaviour of the
+        # reference op. It is useful for detecting behaviour mismatches.
         debug_set = DEBUG_SET.get()
         if debug_set is not None and all(
             disallowed_name not in str(func) for disallowed_name in ("empty", "rand")

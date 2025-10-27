@@ -159,7 +159,9 @@ def rsub_impl(lhs: ComplexTensor, rhs: ComplexTensor, alpha=None) -> ComplexTens
 @register_complex(aten.true_divide)
 def div_impl(lhs: ComplexTensor, rhs: ComplexTensor, *, rounding_mode=None):
     if rounding_mode is not None:
-        raise NotImplementedError
+        raise NotImplementedError(
+            "`rounding_mode` other than `None` not implemented for`ComplexTensor`."
+        )
     a_r, a_i = split_complex_tensor(lhs)
     if not is_complex(rhs):
         return ComplexTensor(a_r / rhs, a_i / rhs)
