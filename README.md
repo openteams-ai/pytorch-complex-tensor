@@ -16,7 +16,7 @@ For now, the development setup uses the CPU version of PyTorch only.
 * Operations are implemented in the [`src/complex_tensor/ops/`](https://github.com/openteams-ai/pytorch-complex-tensor/tree/main/src/complex_tensor/ops) directory.
   * [`_common.py`](https://github.com/openteams-ai/pytorch-complex-tensor/blob/main/src/complex_tensor/ops/_common.py) defines some basic utility functions.
   * [`aten.py`](https://github.com/openteams-ai/pytorch-complex-tensor/blob/main/src/complex_tensor/ops/aten.py) defines overloads for `torch.ops.aten`.
-  * [`prims.py`](https://github.com/openteams-ai/pytorch-complex-tensor/blob/main/src/complex_tensor/ops/aten.py) does the same for `torch.ops.prims`.
+  * [`prims.py`](https://github.com/openteams-ai/pytorch-complex-tensor/blob/main/src/complex_tensor/ops/prims.py) does the same for `torch.ops.prims`.
    * Currently, this directory is empty.
 * Tests are located in [`src/complex_tensor/test`](https://github.com/openteams-ai/pytorch-complex-tensor/tree/main/src/complex_tensor/test).
   * Testing currently needs to be expanded; currently only tests which provide `OpInfo`s in `torch.testing._internal.common_methods_invocations.op_db` are tested.
