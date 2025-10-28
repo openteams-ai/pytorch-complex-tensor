@@ -9,7 +9,7 @@ take care of the rest.
 
 The gradient checking tests are currently placed in [`src/complex_tensor/test/test_ops.py::TestComplexBwdGradients`](https://github.com/openteams-ai/pytorch-complex-tensor/blob/main/src/complex_tensor/test/test_ops.py).
 
-The tests use a `TorchDispatchMode` to map all `torch.Tensor`s with a complex dtype to
+The gradient check tests check the consistency between numerical differentiation versus analytical formulas as implemented by the `complex_tensor.ComplexTensor` class. They do not test numerical accuracy of the gradients vs the gradients calculated in eager mode. The tests use a `TorchDispatchMode` to map all `torch.Tensor`s with a complex dtype to
 `complex_tensor.ComplexTensor`s. The op is then run as usual, going through the dispatching machinery,
 hitting `complex_tensor.ComplexTensor.__torch_dispatch__` as well and then dispatching to the correct op.
 
