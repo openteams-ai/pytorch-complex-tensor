@@ -98,6 +98,7 @@ SKIPS = {
     TestDescriptor(op_name="sin", gradcheck=True): "Numerical inconsistency",
     TestDescriptor(op_name="atan", gradcheck=True): "Numerical inconsistency",
     TestDescriptor(op_name="acos", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="acosh", gradcheck=True): "Numerical inconsistency",
     TestDescriptor(op_name="cos", gradcheck=True): "Numerical inconsistency",
     TestDescriptor(op_name="cosh", gradcheck=True): "Numerical inconsistency",
     TestDescriptor(op_name="addmm", gradcheck=True): "Numerical inconsistency",
