@@ -184,7 +184,6 @@ class TestComplexBwdGradients(TestGradients):
             self.skipTest(f"Skipped! {dtype=} is not in supported backward dtypes!")
 
         with ComplexDispatchMode():
-            op.gradcheck_fast_mode = False
             self._grad_test_helper(device, dtype, op, op.get_op())
 
 
