@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field, fields
+from enum import Enum, auto
 from typing import Any
 
 import torch
+from torch._ops import OpOverloadPacket
 from torch.testing._internal.common_utils import TestCase as PytorchTestCase
 from torch.utils._pytree import tree_flatten
 
@@ -13,15 +15,20 @@ from complex_tensor.ops._common import COMPLEX_TO_REAL, _as_interleaved
 COMPLEX_DTYPES = set(COMPLEX_TO_REAL)
 
 
+class Variant(Enum):
+    Op = auto()
+    GradCheck = auto()
+
+
 @dataclass(frozen=True, kw_only=True)
-class TestDescriptor:
-    op_name: str | None = field(default=None)
+class Descriptor:
+    op: OpOverloadPacket
+    variant: Variant | None
     device: torch.device | None = field(default=None)
     dtype: torch.dtype | None = field(default=None)
     compile: bool | None = field(default=None)
-    gradcheck: bool | None = field(default=None)
 
-    def matches(self, other: TestDescriptor) -> bool:
+    def matches(self, other: Descriptor) -> bool:
         fields1 = fields(self)
         fields2 = fields(other)
         if fields1 != fields2:

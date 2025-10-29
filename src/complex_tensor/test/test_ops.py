@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import torch
-from torch._ops import OpOverload
+from torch._ops import OpOverload, OpOverloadPacket
 from torch.testing._internal.common_device_type import OpDTypes, instantiate_device_type_tests, ops
 from torch.testing._internal.common_methods_invocations import op_db
 from torch.testing._internal.common_utils import (
@@ -16,8 +16,9 @@ from complex_tensor.ops import COMPLEX_OPS_TABLE, FORCE_TEST_LIST
 from complex_tensor.ops._common import ComplexDispatchMode, _as_complex_tensor
 from complex_tensor.test.utils import (
     COMPLEX_DTYPES,
+    Descriptor,
     TestCase,
-    TestDescriptor,
+    Variant,
 )
 
 torch._dynamo.config.recompile_limit = float("inf")
@@ -30,10 +31,20 @@ complex_op_db = tuple(
 )
 
 
-def _get_opname_from_aten_op(aten_op):
+def _get_opname_from_aten_op(aten_op: OpOverloadPacket) -> str:
     if isinstance(aten_op, OpOverload):
         aten_op = aten_op.overloadpacket
     return aten_op._qualified_op_name.split("::")[-1]
+
+
+def get_overload_packet_from_name(name: str) -> OpOverloadPacket:
+    for domain_name in torch.ops:
+        op_namespace = getattr(torch.ops, domain_name)
+        op: OpOverloadPacket = getattr(op_namespace, name, None)
+        if op is not None:
+            return op
+
+    raise RuntimeError(f"No op with {name=} found.")
 
 
 force_test_names = set(map(_get_opname_from_aten_op, FORCE_TEST_LIST))
@@ -64,62 +75,62 @@ if len(non_tested_ops) != 0:
 
 
 SKIPS = {
-    TestDescriptor(op_name="empty_like"): "Inconsistent output",
+    Descriptor(op=aten.empty_like, variant=None): "Non-deterministic output",
     # This passes with `PYTORCH_OPINFO_SAMPLE_INPUT_INDEX=35 ...
     # but when the whole test is run, it fails with this exact
     # sample.
-    TestDescriptor(op_name="repeat", compile=True): "Heisenbug",
-    TestDescriptor(
-        op_name="allclose", compile=True
+    Descriptor(op=aten.repeat, compile=True, variant=None): "Heisenbug",
+    Descriptor(
+        op=aten.allclose, compile=True, variant=None
     ): "`aten.allclose` requires data-dependent control-flow",
-    TestDescriptor(op_name="randn_like"): "Inconsistent output",
-    TestDescriptor(op_name="angle", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="asinh", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="atanh", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="reciprocal", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="rsqrt", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="select", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="asin", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="log", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="sgn", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="cumprod", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="slice", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="sqrt", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="tan", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="true_divide", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="prod", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="div", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="expm1", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="var", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="bmm", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="diagonal", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="sinh", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="abs", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="sin", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="atan", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="acos", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="acosh", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="cos", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="cosh", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="addmm", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="pow", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="log1p", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="tanh", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="mm", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="mul", gradcheck=True): "Numerical inconsistency",
-    TestDescriptor(op_name="exp", gradcheck=True): "Numerical inconsistency",
+    Descriptor(op=aten.randn_like, variant=None): "Non-deterministic output",
+    Descriptor(op=aten.angle, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.asinh, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.atanh, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.reciprocal, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.rsqrt, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.select, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.asin, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.log, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.sgn, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.cumprod, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.slice, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.sqrt, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.tan, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.true_divide, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.prod, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.div, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.expm1, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.var, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.bmm, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.diagonal, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.sinh, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.abs, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.sin, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.atan, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.acos, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.acosh, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.cos, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.cosh, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.addmm, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.pow, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.log1p, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.tanh, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.mm, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.mul, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.exp, variant=Variant.GradCheck): "Numerical inconsistency",
 }
 
 EXTRA_KWARGS = {
-    TestDescriptor(op_name="asinh", dtype=torch.complex64, gradcheck=False): {
+    Descriptor(op=aten.asinh, dtype=torch.complex64, variant=Variant.Op): {
         "rtol": 2e-5,
         "atol": 5e-5,
     },
-    TestDescriptor(op_name="tanh", dtype=torch.complex64, gradcheck=False): {
+    Descriptor(op=aten.tanh, dtype=torch.complex64, variant=Variant.Op): {
         "rtol": 1e-4,
         "atol": 1e-5,
     },
-    TestDescriptor(op_name="pow", dtype=torch.complex64, gradcheck=False): {
+    Descriptor(op=aten.pow, dtype=torch.complex64, variant=Variant.Op): {
         "rtol": 2e-2,
         "atol": 2e-6,
     },
@@ -140,8 +151,12 @@ class TestComplexTensor(TestCase):
         self.check_consistency(device, dtype, op, compile)
 
     def check_consistency(self, device: torch.device, dtype, op: OpInfo, compile: bool) -> None:
-        test_info = TestDescriptor(
-            op_name=op.name, device=device, dtype=dtype, compile=compile, gradcheck=False
+        test_info = Descriptor(
+            op=get_overload_packet_from_name(op.name),
+            device=device,
+            dtype=dtype,
+            compile=compile,
+            variant=Variant.Op,
         )
         for xfail_info, reason in SKIPS.items():
             if xfail_info.matches(test_info):
@@ -175,8 +190,12 @@ class TestComplexTensor(TestCase):
 class TestComplexBwdGradients(TestGradients):
     @ops(implemented_op_db, dtypes=OpDTypes.supported_backward, allowed_dtypes=[torch.complex128])
     def test_fn_grad(self, device: torch.device, dtype: torch.dtype, op: OpInfo) -> None:
-        test_info = TestDescriptor(
-            op_name=op.name, device=device, dtype=dtype, compile=False, gradcheck=True
+        test_info = Descriptor(
+            op=get_overload_packet_from_name(op.name),
+            device=device,
+            dtype=dtype,
+            compile=False,
+            variant=Variant.GradCheck,
         )
         for xfail_info, reason in SKIPS.items():
             if xfail_info.matches(test_info):
