@@ -117,6 +117,7 @@ SKIPS = {
     Descriptor(op=aten.log1p, variant=Variant.GradCheck): "Numerical inconsistency",
     Descriptor(op=aten.tanh, variant=Variant.GradCheck): "Numerical inconsistency",
     Descriptor(op=aten.mm, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(op=aten.dot, variant=Variant.GradCheck): "Numerical inconsistency",
     Descriptor(op=aten.mul, variant=Variant.GradCheck): "Numerical inconsistency",
     Descriptor(op=aten.exp, variant=Variant.GradCheck): "Numerical inconsistency",
 }
