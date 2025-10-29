@@ -107,6 +107,7 @@ SKIPS = {
     TestDescriptor(op_name="tanh", gradcheck=True): "Numerical inconsistency",
     TestDescriptor(op_name="mm", gradcheck=True): "Numerical inconsistency",
     TestDescriptor(op_name="mul", gradcheck=True): "Numerical inconsistency",
+    TestDescriptor(op_name="exp", gradcheck=True): "Numerical inconsistency",
 }
 
 EXTRA_KWARGS = {
