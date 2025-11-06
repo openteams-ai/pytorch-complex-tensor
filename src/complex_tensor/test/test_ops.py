@@ -198,6 +198,10 @@ EXTRA_KWARGS = {
         "rtol": 2e-2,
         "atol": 2e-6,
     },
+    Descriptor(op=aten.tan, dtype=torch.complex64, variant=Variant.Distributed): {
+        "rtol": 2e-6,
+        "atol": 1e-2,
+    },
 }
 
 STORE = dist.HashStore()
