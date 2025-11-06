@@ -123,6 +123,54 @@ SKIPS = {
     Descriptor(op=aten.dot, variant=Variant.GradCheck): "Numerical inconsistency",
     Descriptor(op=aten.mul, variant=Variant.GradCheck): "Numerical inconsistency",
     Descriptor(op=aten.exp, variant=Variant.GradCheck): "Numerical inconsistency",
+    Descriptor(
+        op=aten.any, variant=Variant.Distributed
+    ): "does not have a sharding strategy registered",
+    Descriptor(
+        op=aten.all, variant=Variant.Distributed
+    ): "does not have a sharding strategy registered",
+    Descriptor(
+        op=aten.allclose, variant=Variant.Distributed
+    ): "does not have a sharding strategy registered",
+    Descriptor(
+        op=aten.conj_physical, variant=Variant.Distributed
+    ): "does not have a sharding strategy registered",
+    Descriptor(
+        op=aten._conj_physical, variant=Variant.Distributed
+    ): "does not have a sharding strategy registered",
+    Descriptor(
+        op=aten.cumprod, variant=Variant.Distributed
+    ): "does not have a sharding strategy registered",
+    Descriptor(
+        op=aten.index_add, variant=Variant.Distributed
+    ): "does not have a sharding strategy registered",
+    Descriptor(
+        op=aten.diagonal_scatter, variant=Variant.Distributed
+    ): "does not have a sharding strategy registered",
+    Descriptor(
+        op=aten.flip, variant=Variant.Distributed
+    ): "does not have a sharding strategy registered",
+    Descriptor(
+        op=aten.masked_fill, variant=Variant.Distributed
+    ): "does not have a sharding strategy registered",
+    Descriptor(
+        op=aten.masked_scatter, variant=Variant.Distributed
+    ): "does not have a sharding strategy registered",
+    Descriptor(
+        op=aten.rsub, variant=Variant.Distributed
+    ): "does not have a sharding strategy registered",
+    Descriptor(
+        op=aten.ne, variant=Variant.Distributed
+    ): "does not have a sharding strategy registered",
+    Descriptor(
+        op=aten.squeeze, variant=Variant.Distributed
+    ): "does not have a sharding strategy registered",
+    Descriptor(op=aten.index_select, variant=Variant.Distributed): "Sharding propagation failed",
+    Descriptor(op=aten.real, variant=Variant.Distributed): "No scalar support",
+    Descriptor(op=aten.imag, variant=Variant.Distributed): "No scalar support",
+    Descriptor(op=aten.isfinite, variant=Variant.Distributed): "No scalar support",
+    Descriptor(op=aten.transpose, variant=Variant.Distributed): "No scalar support",
+    Descriptor(op=aten.view_as_real, variant=Variant.Distributed): "No scalar support",
 }
 
 EXTRA_KWARGS = {
@@ -135,6 +183,18 @@ EXTRA_KWARGS = {
         "atol": 1e-5,
     },
     Descriptor(op=aten.pow, dtype=torch.complex64, variant=Variant.Op): {
+        "rtol": 2e-2,
+        "atol": 2e-6,
+    },
+    Descriptor(op=aten.asinh, dtype=torch.complex64, variant=Variant.Distributed): {
+        "rtol": 2e-5,
+        "atol": 5e-5,
+    },
+    Descriptor(op=aten.tanh, dtype=torch.complex64, variant=Variant.Distributed): {
+        "rtol": 1e-4,
+        "atol": 1e-5,
+    },
+    Descriptor(op=aten.pow, dtype=torch.complex64, variant=Variant.Distributed): {
         "rtol": 2e-2,
         "atol": 2e-6,
     },

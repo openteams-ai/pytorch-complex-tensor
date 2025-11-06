@@ -92,7 +92,7 @@ SIMPLE_OPS_LIST = [
 ]
 
 for simple_op in SIMPLE_OPS_LIST:
-    globals()[f"{str(simple_op).split('.', 1)}_impl"] = register_simple(simple_op)
+    globals()[f"{str(simple_op).split('.', 1)[1]}_impl"] = register_simple(simple_op)
 
 # TODO (hameerabbasi): Not being tested
 SIMPLE_FORCE_TESTED_OPS = [
