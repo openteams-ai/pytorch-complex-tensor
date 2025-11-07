@@ -6,6 +6,7 @@ from enum import Enum, auto
 from typing import Any
 
 import torch
+import torch.distributed as dist
 from torch._ops import OpOverloadPacket
 from torch.testing._internal.common_utils import TestCase as PytorchTestCase
 from torch.utils._pytree import tree_flatten
@@ -18,6 +19,14 @@ COMPLEX_DTYPES = set(COMPLEX_TO_REAL)
 class Variant(Enum):
     Op = auto()
     GradCheck = auto()
+    Distributed = auto()
+
+
+def _as_local(arg: dist.tensor.DTensor | Any) -> torch.Tensor | Any:
+    if not isinstance(arg, dist.tensor.DTensor):
+        return arg
+
+    return arg.full_tensor()
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -79,7 +88,7 @@ class TestCase(PytorchTestCase):
                 spec_e, spec_a, "Both functions must return a result with the same tree structure."
             )
             for value_e, value_a in zip(flattened_e, flattened_a, strict=True):
-                value_e = _as_interleaved(value_e)
-                value_a = _as_interleaved(value_a)
+                value_e = _as_interleaved(_as_local(value_e))
+                value_a = _as_interleaved(_as_local(value_a))
 
                 self.assertEqual(value_e, value_a, *args, **kwargs)

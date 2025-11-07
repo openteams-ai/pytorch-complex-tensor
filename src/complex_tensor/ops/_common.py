@@ -183,7 +183,7 @@ def register_simple(op: OpType):
         out_flat = [ComplexTensor(ui, vi) for ui, vi in zip(u_flat, v_flat, strict=False)]
         return tree_unflatten(out_flat, u_spec)
 
-    func_name = f"{str(op).split('.', 1)}_impl"
+    func_name = f"{str(op).split('.', 1)[1]}_impl"
     impl.__name__ = func_name
     impl.__qualname__ = func_name
 
