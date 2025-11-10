@@ -129,15 +129,23 @@ def complex_to_real_dtype(dtype: torch.dtype) -> torch.dtype:
     return COMPLEX_TO_REAL.get(dtype, dtype)
 
 
+def _get_op_name(op: OpType) -> str:
+    return str(op).split(".", 1)[1]
+
+
+def _get_func_name(op: OpType) -> str:
+    return f"{_get_op_name(op)}_impl"
+
+
 def register_error(op: OpType):
-    msg = f"`aten.{str(op).split('.', 1)[0]}` not implemented for `{ComplexTensor.__name__}`."
+    msg = f"`aten.{_get_op_name(op)}` not implemented for `{ComplexTensor.__name__}`."
 
     exc_type = ERROR_TYPES.get(op, NotImplementedError)
 
     def ordered_impl(*args, **kwargs):
         raise exc_type(msg)
 
-    func_name = f"{str(op).split('.', 1)}_impl"
+    func_name = _get_func_name(op)
     ordered_impl.__name__ = func_name
     ordered_impl.__qualname__ = func_name
 
@@ -156,7 +164,7 @@ def register_binary_nonlinear(op: OpType) -> Callable:
         imag = op(a_r, b_i, *args, **kwargs) + op(a_i, b_r, *args, **kwargs)
         return ComplexTensor(real.to(out_dt), imag.to(out_dt))
 
-    func_name = f"{str(op).split('.', 1)}_impl"
+    func_name = _get_func_name(op)
     impl.__name__ = func_name
     impl.__qualname__ = func_name
 
@@ -183,7 +191,7 @@ def register_simple(op: OpType):
         out_flat = [ComplexTensor(ui, vi) for ui, vi in zip(u_flat, v_flat, strict=False)]
         return tree_unflatten(out_flat, u_spec)
 
-    func_name = f"{str(op).split('.', 1)[1]}_impl"
+    func_name = _get_func_name(op)
     impl.__name__ = func_name
     impl.__qualname__ = func_name
 

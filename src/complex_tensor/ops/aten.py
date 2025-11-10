@@ -9,6 +9,7 @@ from ._common import (
     COMPLEX_TO_REAL,
     ERROR_TYPES,
     OpType,
+    _get_func_name,
     complex_to_real_dtype,
     is_complex,
     promote_real_cpu_tensors,
@@ -92,7 +93,7 @@ SIMPLE_OPS_LIST = [
 ]
 
 for simple_op in SIMPLE_OPS_LIST:
-    globals()[f"{str(simple_op).split('.', 1)[1]}_impl"] = register_simple(simple_op)
+    globals()[_get_func_name(simple_op)] = register_simple(simple_op)
 
 # TODO (hameerabbasi): Not being tested
 SIMPLE_FORCE_TESTED_OPS = [
@@ -115,7 +116,7 @@ SIMPLE_FORCE_TESTED_OPS = [
 ]
 
 for simple_op in SIMPLE_FORCE_TESTED_OPS:
-    globals()[f"{str(simple_op).split('.', 1)}_impl"] = register_force_test(
+    globals()[_get_func_name(simple_op)] = register_force_test(
         simple_op, register_simple(simple_op)
     )
 
@@ -477,7 +478,7 @@ ERROR_TYPES.update(
 
 
 for err_op in ERROR_OPS_LIST:
-    globals()[f"{str(err_op).split('.', 1)}_impl"] = register_error(err_op)
+    globals()[_get_func_name(err_op)] = register_error(err_op)
 
 del err_op
 
@@ -541,7 +542,7 @@ def register_like(op: OpType) -> Callable[..., torch.Tensor | ComplexTensor]:
 
         return ComplexTensor(ret_re, ret_im)
 
-    func_name = f"{str(op).split('.', 1)}_impl"
+    func_name = _get_func_name(op)
     impl.__name__ = func_name
     impl.__qualname__ = func_name
 
@@ -556,7 +557,7 @@ LIKE_OPS_LIST = [
 ]
 
 for like_op in LIKE_OPS_LIST:
-    globals()[f"{str(like_op).split('.', 1)}_impl"] = register_like(like_op)
+    globals()[_get_func_name(like_op)] = register_like(like_op)
 
 del like_op
 
@@ -641,7 +642,7 @@ def register_nonzero_impl(op: OpType):
     def nonzero_impl(self: ComplexTensor, other: ComplexTensor, *args, **kwargs) -> torch.Tensor:
         return op(elemwise_nonzero(self), elemwise_nonzero(other), *args, **kwargs)
 
-    func_name = f"{str(op).split('.', 1)}_impl"
+    func_name = _get_func_name(op)
     nonzero_impl.__name__ = func_name
     nonzero_impl.__qualname__ = func_name
 
